@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace DaveKok\LALR1;
 
-class Type
+abstract class Symbol
 {
     public readonly string $key;
     public readonly string $name;

@@ -7,7 +7,7 @@ namespace DaveKok\LALR1;
 class Token
 {
     public function __construct(
-        public readonly Type $type,
+        public readonly Symbol $symbol,
         public readonly mixed $value = null
     ) {}
 }

@@ -12,35 +12,80 @@ use RuntimeException;
  *
  * It works by pushing tokens. Then the right most (last pushed) token(s) are checked against
  * the rules, excluding the last pushed token as it is used as the look ahead token. If a rule
- * is matched, its reduce function is called and the matched tokens are replaced with the
+ * is matched, the rule's reduce function is called and the matched tokens are replaced with the
  * token returned by the reduce function.
  *
- * When there are no more tokens push, call endOfTokens.
+ * When there are no more tokens push, endOfTokens is called.
  *
  * A solution is found when at the end of tokens, through reducing, only one token remains having
- * the final token type.
+ * the root symbol and thus being the root token.
+ *
+ * An implementing class has set the Symbols attribute on the
+ * class and the Rule attribute on methods implementing a rule.
+ *
+ * Example:
+ *
+ *     use DaveKok\LALR1\Symbols;
+ *     use DaveKok\LALR1\RootSymbol;
+ *     use DaveKok\LALR1\BranchSymbol;
+ *     use DaveKok\LALR1\LeafSymbol;
+ *     use DaveKok\LALR1\Parser;
+ *     use DaveKok\LALR1\ParserFactory;
+ *
+ *     #[Symbols(
+ *         new RootSymbol("my-root-symbol"),
+ *         new BranchSymbol("my-branch-symbol"),
+ *         new LeafSymbol("my-leaf-symbol")
+ *     )]
+ *     class MyParser
+ *     {
+ *         private readonly Parser $parser;
+ *
+ *         public function __construct()
+ *         {
+ *              $this->parser = ParserFactory::createParser($this);
+ *         }
+ *
+ *         public function parse(): string
+ *         {
+ *              $this->parser->pushToken($this->parser->createToken("my-leaf-symbol", "my value"));
+ *              $this->parser->endOfTokens();
+ *              return $this->parser->value;
+ *         }
+ *
+ *         #[Rule("my-leaf-symbol")]
+ *         public function promoteLeafToken(Token $myLeafToken): Token
+ *         {
+ *              return $this->parser->createToken("my-branch-symbol", $myLeafToken->value);
+ *         }
+ *
+ *         #[Rule("my-branch-symbol")]
+ *         public function promoteBranchToken(Token $myBranchToken): Token
+ *         {
+ *              return $this->parser->createToken("my-root-symbol", $myBranchToken->value);
+ *         }
+ *     }
  */
 class Parser
 {
     /**
-     * If a solution has been found, this property contains the value of the final token.
+     * If a solution has been found, this property contains the value of the root token.
      */
     public mixed $value;
 
     private array $tokens = [];
 
     public function __construct(
-        private readonly Rules $rules,
-        private readonly Types $types
-    ) {
-    }
+        private readonly Symbols $symbols,
+        public readonly Rules $rules
+    ) {}
 
     /**
      * Create a new token.
      */
     public function createToken(string $name, mixed $value = null): Token
     {
-        $type = $this->types->getByName($name) ?? null;
+        $type = $this->symbols->getByName($name) ?? null;
         if ($type === null) {
             throw new Exception("No such type '$name'.");
         }
@@ -52,8 +97,8 @@ class Parser
      */
     public function pushToken(Token $token): void
     {
-        if ($token->type !== $this->types->finalType) {
-            throw new LogicException("Tokens of the final token type should not be pushed.");
+        if ($token->symbol instanceof LeafSymbol === false) {
+            throw new LogicException("You should only push leaf symbols.");
         }
 
         $this->tokens[] = $token;
@@ -89,14 +134,14 @@ class Parser
                     return;
                 }
 
-                $finalToken = array_pop($this->tokens);
+                $rootToken = array_pop($this->tokens);
 
-                // The final token should be of final token type.
-                if ($finalToken->type !== $this->types->finalType) {
+                // The root token should have the root symbol.
+                if ($rootToken->symbol !== $this->symbols->rootSymbol) {
                     throw new LogicException("End of tokens reached, but no valid solution.");
                 }
 
-                $this->value = $finalToken->value;
+                $this->value = $rootToken->value;
 
                 return;
             }
@@ -105,14 +150,16 @@ class Parser
             if ($endOfTokens === false) {
                 --$l;
                 $lookAheadToken = $this->tokens[$l];
+            } else {
+                $lookAheadToken = null;
             }
 
             // Check if a rule matches and reduce.
             for ($i = $l - 1; $i >= 0; --$i) {
                 // Construct the key.
                 $key = "";
-                for ($j = $i; $j <= $l; ++$j) {
-                    $key .= $this->tokens[$j]->type->key;
+                for ($j = $i; $j < $l; ++$j) {
+                    $key .= $this->tokens[$j]->symbol->key;
                 }
 
                 $rule = $this->rules->get($key);
@@ -123,7 +170,9 @@ class Parser
                 }
 
                 // Check precedence of look ahead token
-                if ($lookAheadToken->type->precendence > $rule->precedence) {
+                if ($lookAheadToken !== null
+                        && $lookAheadToken->symbol->precedence > $rule->precedence)
+                {
                     continue;
                 }
 
