@@ -31,8 +31,8 @@ class RulesFactoryTest extends TestCase
         $key2         = $openingBrace->key . $closingBrace->key;
         $callable1    = fn(Token $o) => $o;
         $callable2    = fn(Token $o, Token $c) => $o;
-        $expected1    = new RuleStruct($key1, 0, $callable1);
-        $expected2    = new RuleStruct($key2, 0, $callable2);
+        $expected1    = new RuleStruct($key1, 0, $callable1, "object");
+        $expected2    = new RuleStruct($key2, 0, $callable2, "opening-brace closing-brace");
 
         $factory      = new RulesFactory($symbols);
         $factory->addRule(new Rule("object"), $callable1);

@@ -9,6 +9,7 @@ class RuleStruct
     public function __construct(
         public readonly string $key,
         public readonly int $precedence,
-        public readonly mixed $reduce
+        public readonly mixed $reduce,
+        public readonly string $text
     ) {}
 }

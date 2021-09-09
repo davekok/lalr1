@@ -52,29 +52,45 @@ class JSONTest extends TestCase
             ["addElement", "array comma value"],
             ["endArray", "array closing-brace"],
             ["emptyObject", "opening-brace closing-brace"],
-            ["startObject", "opening-brace key value"],
-            ["addProperty", "object comma key value"],
-            ["endObject", "object closing-brace"],
+            ["fullObject", "opening-brace properties closing-brace"],
+            ["startProperties", "key value"],
+            ["addProperty", "properties comma key value"],
             ["promoteToKey", "string colon"],
         ], $rules);
     }
 
-    public function testEmptyObject(): void
+    public function simpleData(): array
     {
-        $parser = new JSONParser();
-        $json   = "{}";
-        $tokens = iterator_to_array(new JSONScanner($parser->parser, $json));
-        static::assertCount(2, $tokens);
-        static::assertSame('opening-brace', $tokens[0]->symbol->name);
-        static::assertSame('closing-brace', $tokens[1]->symbol->name);
+        return [
+            [9384,        "9384"        ],
+            [-9384,       "-9384"       ],
+            [9384.38437,  "9384.38437"  ],
+            [-9384.38437, "-9384.38437" ],
+            [4.38437e10,  "4.38437e10"  ],
+            [-4.38437e10, "-4.38437e10" ],
+            [true,        "true"        ],
+            [false,       "false"       ],
+            [null,        "null"        ],
+            ["sdf\ndf",   "\"sdf\\ndf\""],
+            [[],          "[]"          ],
+            [[],          "[ ]"         ],
+        ];
+    }
 
-        $rules = iterator_to_array($parser->parser->rules);
-        $rule  = $parser->parser->rules->get($tokens[0]->symbol->key . $tokens[1]->symbol->key);
-        static::assertEquals($rules[10], $rule);
+    /**
+     * @dataProvider simpleData
+     */
+    public function testSimple(mixed $expected, string $json): void
+    {
+        static::assertSame($expected, (new JSONParser())->parse($json));
+    }
 
-        $parser->parser->pushToken($tokens[0]);
-        $parser->parser->pushToken($tokens[1]);
-        $parser->parser->endOfTokens();
-        static::assertEquals(new stdClass, $parser->parser->value);
+    public function testObject(): void
+    {
+        // static::assertEquals(new stdClass, (new JSONParser())->parse('{}'));
+        // static::assertEquals(new stdClass, (new JSONParser())->parse('{ }'));
+        $o = new stdClass;
+        $o->key = "value";
+        static::assertEquals($o, (new JSONParser())->parse('{"key":"value"}'));
     }
 }

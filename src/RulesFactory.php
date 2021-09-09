@@ -43,6 +43,6 @@ class RulesFactory
             }
         }
 
-        $this->rules[$symbolKey] = new RuleStruct($symbolKey, $precedence, $reduce);
+        $this->rules[$symbolKey] = new RuleStruct($symbolKey, $precedence, $reduce, $rule->text);
     }
 }

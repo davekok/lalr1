@@ -28,6 +28,7 @@ use stdClass;
     new LeafSymbol("colon", 1),
     new BranchSymbol("object"),
     new BranchSymbol("array"),
+    new BranchSymbol("properties"),
     new BranchSymbol("key"),
     new RootSymbol("value")
 )]
@@ -116,27 +117,27 @@ class JSONParser
         return $this->parser->createToken("object", new stdClass);
     }
 
-    #[Rule("opening-brace key value")]
-    public function startObject(Token $openingBrace, Token $key, Token $value): Token
+    #[Rule("opening-brace properties closing-brace")]
+    public function fullObject(Token $openingBrace, Token $properties, Token $closingBrace): Token
     {
-        $obj = new stdClass;
-        $key = $key->value;
-        $obj->$key = $value->value;
-        return $this->parser->createToken("object", $obj);
+        return $this->parser->createToken("object", $properties->value);
     }
 
-    #[Rule("object comma key value")]
-    public function addProperty(Token $obj, Token $comma, Token $key, Token $value): Token
+    #[Rule("key value")]
+    public function startProperties(Token $key, Token $value): Token
     {
+        $o = new stdClass;
         $key = $key->value;
-        $obj->$key = $value->value;
-        return $obj;
+        $o->$key = $value->value;
+        return $this->parser->createToken("properties", $o);
     }
 
-    #[Rule("object closing-brace")]
-    public function endObject(Token $obj, Token $closingBrace): Token
+    #[Rule("properties comma key value")]
+    public function addProperty(Token $properties, Token $comma, Token $key, Token $value): Token
     {
-        return $this->parser->createToken("value", $obj->value);
+        $key = $key->value;
+        $properties->value->$key = $value->value;
+        return $properties;
     }
 
     #[Rule("string colon")]

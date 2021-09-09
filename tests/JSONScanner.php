@@ -74,7 +74,7 @@ class JSONScanner implements Iterator
     private function scanSpace(): Token
     {
         // skip space
-        $this->grep('/^([\x09\x0A\x0D\x20]+)/');
+        $this->grep('/([ ]+)/');
 
         // do next scan
         return $this->scan();
@@ -115,15 +115,15 @@ class JSONScanner implements Iterator
 
     private function scanNumber(): Token
     {
-        $value = $this->grep('/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[Ee][+-]?[0-9]+)?/');
-        $value = strpos($value) === false ? (int)$value : (float)$value;
+        $value = $this->grep('/^(-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[Ee][+-]?[0-9]+)?)/');
+        $value = strpos($value, ".") === false ? (int)$value : (float)$value;
         return $this->parser->createToken("number", $value);
     }
 
     private function scanString(): Token
     {
         $value = $this->grep(
-            '~^"((?:[\x20-\x21\x23-\x5B\x5D-\x7E\x80-\xFF]|\\\\(?:["\\\\/bfnrt]|u[0-9A-Fa-f]{4}))*)"~'
+            '~"((?:[\x20-\x21\x23-\x5B\x5D-\x7E\x80-\xFF]|\\\\(?:["\\\\/bfnrt]|u[0-9A-Fa-f]{4}))*)"~'
         );
         $value = str_replace(['\b', '\t', '\n', '\f', '\r'], ["\x08", "\t", "\n", "\f", "\r"], $value);
         $value = preg_replace_callback(
@@ -136,12 +136,13 @@ class JSONScanner implements Iterator
 
     private function grep(string $regex): string
     {
-        // echo "\n$regex\n";
-        if (preg_match($regex, $this->buffer, $match, 0, --$this->offset) !== 1) {
-            throw new Exception("Scan error");
+        $ret = preg_match($regex, $this->buffer, $match, 0, --$this->offset);
+        if ($ret !== 1) {
+            if ($ret === false) $ret = "false";
+            throw new Exception("Scan error $ret|$regex|" . substr($this->buffer, $this->offset, 20));
         }
 
-        $this->offset += strlen($match[1]);
+        $this->offset += strlen($match[0]);
 
         return $match[1];
     }
