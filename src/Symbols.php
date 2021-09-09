@@ -13,17 +13,17 @@ use Exception;
 #[Attribute]
 class Symbols implements IteratorAggregate
 {
-    private readonly array $symbolsMappedByKey;
-    private readonly array $symbolsMappedByName;
-    public readonly RootSymbol $rootSymbol;
+    private readonly array      $symbolsMappedByKey;
+    private readonly array      $symbolsMappedByName;
+    public  readonly RootSymbol $rootSymbol;
 
     public function __construct(Symbol ...$symbols)
     {
-        $symbolsMappedByKey = [];
+        $symbolsMappedByKey  = [];
         $symbolsMappedByName = [];
         foreach ($symbols as $key => $symbol) {
             $symbol->setKey($key);
-            $symbolsMappedByKey[$key] = $symbol;
+            $symbolsMappedByKey[$symbol->key]   = $symbol;
             $symbolsMappedByName[$symbol->name] = $symbol;
             if ($symbol instanceof RootSymbol) {
                 if (isset($this->rootSymbol)) {
@@ -32,13 +32,14 @@ class Symbols implements IteratorAggregate
                 $this->rootSymbol = $symbol;
             }
         }
-        $this->symbolsMappedByKey = $symbolsMappedByKey;
+        $this->symbolsMappedByKey  = $symbolsMappedByKey;
         $this->symbolsMappedByName = $symbolsMappedByName;
     }
 
     public function getByKey(string $key): Symbol
     {
-        return $this->symbolsMappedByKey[$key] ?? throw new Exception("Symbol not found.");
+        return $this->symbolsMappedByKey[$key]
+            ?? throw new Exception("Symbol not found " . Key::keyToNumber($key));
     }
 
     public function getByName(string $name): Symbol

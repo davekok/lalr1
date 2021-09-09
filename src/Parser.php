@@ -177,7 +177,7 @@ class Parser
                 }
 
                 // Call the rule's reduce function.
-                $newToken = $rule->reduce(...array_slice($this->tokens[$i]));
+                $newToken = ($rule->reduce)(...array_slice($this->tokens, $i));
 
                 // Replace matched tokens with new token
                 array_splice($this->tokens, $i, $l - $i, [$newToken]);

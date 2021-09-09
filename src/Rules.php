@@ -14,7 +14,7 @@ class Rules implements IteratorAggregate
         private readonly array $rules
     ) {}
 
-    public function get(string $key): ?Rule
+    public function get(string $key): ?RuleStruct
     {
         return $this->rules[$key] ?? null;
     }

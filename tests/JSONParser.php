@@ -9,8 +9,9 @@ use DaveKok\LALR1\LeafSymbol;
 use DaveKok\LALR1\Parser;
 use DaveKok\LALR1\ParserFactory;
 use DaveKok\LALR1\RootSymbol;
-use DaveKok\LALR1\Symbols;
 use DaveKok\LALR1\Rule;
+use DaveKok\LALR1\Symbols;
+use DaveKok\LALR1\Token;
 use Exception;
 use stdClass;
 

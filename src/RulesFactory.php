@@ -20,7 +20,7 @@ class RulesFactory
     public function addRule(Rule $rule, callable $reduce): void
     {
         $precedence  = 0;
-        $key         = "";
+        $symbolKey   = "";
         $symbolNames = explode(" ", $rule->text);
         $count       = count($symbolNames);
         $lastKey     = $count - 1;
@@ -35,14 +35,14 @@ class RulesFactory
                 break;
             }
 
-            $symbol = $this->symbols->getByName($symbolName);
-            $key   .= $symbol->key;
+            $symbol     = $this->symbols->getByName($symbolName);
+            $symbolKey .= $symbol->key;
 
             if ($precedence === 0 && $symbol instanceof LeafSymbol && $symbol->precedence > 0) {
                 $precedence = $symbol->precedence;
             }
         }
 
-        $this->rules[$key] = new RuleStruct($key, $precedence, $reduce);
+        $this->rules[$symbolKey] = new RuleStruct($symbolKey, $precedence, $reduce);
     }
 }

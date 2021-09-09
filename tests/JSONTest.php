@@ -60,18 +60,15 @@ class JSONTest extends TestCase
     public function testEmptyObject(): void
     {
         $parser = new JSONParser();
-
-        $json = "{}";
+        $json   = "{}";
         $tokens = iterator_to_array(new JSONScanner($parser->parser, $json));
         static::assertCount(2, $tokens);
         static::assertSame('opening-brace', $tokens[0]->symbol->name);
         static::assertSame('closing-brace', $tokens[1]->symbol->name);
 
         $rules = iterator_to_array($parser->parser->rules);
-
-        $rule = $parser->parser->rules->get($tokens[0]->symbol->key . $tokens[1]->symbol->key);
-        static::assertSame($rules[4], $rule);
-
+        $rule  = $parser->parser->rules->get($tokens[0]->symbol->key . $tokens[1]->symbol->key);
+        static::assertEquals($rules[8], $rule);
 
         $parser->parser->pushToken($tokens[0]);
         $parser->parser->pushToken($tokens[1]);
