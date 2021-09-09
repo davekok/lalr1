@@ -128,24 +128,6 @@ class Parser
                 throw new RuntimeException("Invalid internal state.");
             }
 
-            if ($l === 1) {
-                // Edge case: first push should be ignored as it only arms the look ahead.
-                if ($endOfTokens === false) {
-                    return;
-                }
-
-                $rootToken = array_pop($this->tokens);
-
-                // The root token should have the root symbol.
-                if ($rootToken->symbol !== $this->symbols->rootSymbol) {
-                    throw new LogicException("End of tokens reached, but no valid solution.");
-                }
-
-                $this->value = $rootToken->value;
-
-                return;
-            }
-
             // Skip the lookahead token until the end has been reached.
             if ($endOfTokens === false) {
                 --$l;
@@ -185,6 +167,23 @@ class Parser
                 // Check for more rules with new state.
                 continue 2;
             }
+
+            if ($l === 1) {
+                // Edge case: first push should be ignored as it only arms the look ahead.
+                if ($endOfTokens === false) {
+                    return;
+                }
+
+                $token = array_pop($this->tokens);
+
+                // If token has the rootSymbol, we have a solution.
+                if ($token->symbol !== $this->symbols->rootSymbol) {
+                    throw new LogicException("End of tokens reached, but no valid solution.");
+                }
+
+                $this->value = $token->value;
+            }
+
             return;
         }
     }

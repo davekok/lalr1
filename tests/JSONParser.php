@@ -73,6 +73,18 @@ class JSONParser
         return $this->parser->createToken("value", $stringToken->value);
     }
 
+    #[Rule("object")]
+    public function promoteObject(Token $objectToken): Token
+    {
+        return $this->parser->createToken("value", $objectToken->value);
+    }
+
+    #[Rule("array")]
+    public function promoteArray(Token $arrayToken): Token
+    {
+        return $this->parser->createToken("value", $arrayToken->value);
+    }
+
     #[Rule("opening-bracket closing-bracket")]
     public function emptyArray(Token $openingBracket, Token $closingBracket): Token
     {

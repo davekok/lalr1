@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+case "$1" in
+    login)
+        podman login
+        ;;
+
+    build)
+        buildah bud -t ghcr.io/davekok/lalr1:test test.dockerfile
+        ;;
+
+    push)
+        podman push ghcr.io/davekok/lalr1:test
+        ;;
+
+    test)
+        podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests ghcr.io/davekok/lalr1:test
+        ;;
+esac

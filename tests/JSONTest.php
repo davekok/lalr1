@@ -45,6 +45,8 @@ class JSONTest extends TestCase
             ["promoteBoolean", "boolean"],
             ["promoteNumber", "number"],
             ["promoteString", "string"],
+            ["promoteObject", "object"],
+            ["promoteArray", "array"],
             ["emptyArray", "opening-bracket closing-bracket"],
             ["startArray", "opening-bracket value"],
             ["addElement", "array comma value"],
@@ -68,7 +70,7 @@ class JSONTest extends TestCase
 
         $rules = iterator_to_array($parser->parser->rules);
         $rule  = $parser->parser->rules->get($tokens[0]->symbol->key . $tokens[1]->symbol->key);
-        static::assertEquals($rules[8], $rule);
+        static::assertEquals($rules[10], $rule);
 
         $parser->parser->pushToken($tokens[0]);
         $parser->parser->pushToken($tokens[1]);
