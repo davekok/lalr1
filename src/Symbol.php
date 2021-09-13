@@ -22,4 +22,9 @@ abstract class Symbol
     {
         $this->key = Key::numberToKey($number);
     }
+
+    public function __toString(): string
+    {
+        return $name . ":" . bin2hex($key) . ":" . $precedence;
+    }
 }

@@ -3,13 +3,15 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-case "$1" in
+cd "$(dirname "$(readlink -f "$0")")"
+
+case "${1:-}" in
     login)
         podman login
         ;;
 
     build)
-        buildah bud -t ghcr.io/davekok/lalr1:test test.dockerfile
+        buildah bud -t ghcr.io/davekok/lalr1:test test.containerfile
         ;;
 
     push)
@@ -18,5 +20,9 @@ case "$1" in
 
     test)
         podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests ghcr.io/davekok/lalr1:test
+        ;;
+
+    "")
+        echo "Usage: $0 ( login | build | push | test )"
         ;;
 esac

@@ -6,4 +6,8 @@ namespace DaveKok\LALR1;
 
 class LeafSymbol extends Symbol
 {
+    public function __toString(): string
+    {
+        return "Leaf:" . parent::__toString();
+    }
 }

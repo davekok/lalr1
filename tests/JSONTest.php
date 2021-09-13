@@ -49,12 +49,12 @@ class JSONTest extends TestCase
             ["promoteArray", "array"],
             ["emptyArray", "opening-bracket closing-bracket"],
             ["startArray", "opening-bracket value"],
-            ["addElement", "array comma value"],
-            ["endArray", "array closing-brace"],
+            ["addElement", "elements comma value"],
+            ["endArray", "elements closing-brace"],
             ["emptyObject", "opening-brace closing-brace"],
-            ["fullObject", "opening-brace properties closing-brace"],
-            ["startProperties", "key value"],
+            ["startObject", "opening-brace key value"],
             ["addProperty", "properties comma key value"],
+            ["closeObject", "properties closing-brace"],
             ["promoteToKey", "string colon"],
         ], $rules);
     }
@@ -72,8 +72,6 @@ class JSONTest extends TestCase
             [false,       "false"       ],
             [null,        "null"        ],
             ["sdf\ndf",   "\"sdf\\ndf\""],
-            [[],          "[]"          ],
-            [[],          "[ ]"         ],
         ];
     }
 
@@ -87,10 +85,22 @@ class JSONTest extends TestCase
 
     public function testObject(): void
     {
-        // static::assertEquals(new stdClass, (new JSONParser())->parse('{}'));
-        // static::assertEquals(new stdClass, (new JSONParser())->parse('{ }'));
+        static::assertEquals(new stdClass, (new JSONParser())->parse('{}'));
+        static::assertEquals(new stdClass, (new JSONParser())->parse('{ }'));
         $o = new stdClass;
         $o->key = "value";
         static::assertEquals($o, (new JSONParser())->parse('{"key":"value"}'));
+        $o = new stdClass;
+        $o->key1 = "value1";
+        $o->key2 = "value2";
+        static::assertEquals($o, (new JSONParser())->parse('{"key1": "value1", "key2": "value2"}'));
+    }
+
+    public function testArray(): void
+    {
+        static::assertSame([], (new JSONParser())->parse('[]'));
+        static::assertSame([], (new JSONParser())->parse('[ ]'));
+        static::assertSame(["value"], (new JSONParser())->parse('["value"]'));
+        // static::assertSame(["value", 3748], (new JSONParser())->parse('["value", 3748]'));
     }
 }

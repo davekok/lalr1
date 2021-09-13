@@ -29,6 +29,7 @@ use stdClass;
     new BranchSymbol("object"),
     new BranchSymbol("array"),
     new BranchSymbol("properties"),
+    new BranchSymbol("elements"),
     new BranchSymbol("key"),
     new RootSymbol("value")
 )]
@@ -95,20 +96,21 @@ class JSONParser
     #[Rule("opening-bracket value")]
     public function startArray(Token $openingBracket, Token $value): Token
     {
-        return $this->parser->createToken("array", [$value->value]);
+        $array = [$value->value];
+        return $this->parser->createToken("elements", $array);
     }
 
-    #[Rule("array comma value")]
-    public function addElement(Token $array, Token $comma, Token $value): Token
+    #[Rule("elements comma value")]
+    public function addElement(Token $elements, Token $comma, Token $value): Token
     {
-        $array->value[] = $value->value;
-        return $this->parser->createToken("array", $array);
+        $elements->value[] = $value->value;
+        return $elements;
     }
 
-    #[Rule("array closing-brace")]
-    public function endArray(Token $array, Token $closingBrace): Token
+    #[Rule("elements closing-brace")]
+    public function endArray(Token $elements, Token $closingBrace): Token
     {
-        return $this->parser->createToken("value", $array->value);
+        return $this->parser->createToken("array", $elements->value);
     }
 
     #[Rule("opening-brace closing-brace")]
@@ -117,14 +119,8 @@ class JSONParser
         return $this->parser->createToken("object", new stdClass);
     }
 
-    #[Rule("opening-brace properties closing-brace")]
-    public function fullObject(Token $openingBrace, Token $properties, Token $closingBrace): Token
-    {
-        return $this->parser->createToken("object", $properties->value);
-    }
-
-    #[Rule("key value")]
-    public function startProperties(Token $key, Token $value): Token
+    #[Rule("opening-brace key value")]
+    public function startObject(Token $openingBrace, Token $key, Token $value): Token
     {
         $o = new stdClass;
         $key = $key->value;
@@ -138,6 +134,12 @@ class JSONParser
         $key = $key->value;
         $properties->value->$key = $value->value;
         return $properties;
+    }
+
+    #[Rule("properties closing-brace")]
+    public function closeObject(Token $properties, Token $closingBrace): Token
+    {
+        return $this->parser->createToken("object", $properties->value);
     }
 
     #[Rule("string colon")]
