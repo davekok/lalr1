@@ -115,7 +115,7 @@ class JSONScanner implements Iterator
 
     private function scanNumber(): Token
     {
-        $value = $this->grep('/^(-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[Ee][+-]?[0-9]+)?)/');
+        $value = $this->grep('/(-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[Ee][+-]?[0-9]+)?)/');
         $value = strpos($value, ".") === false ? (int)$value : (float)$value;
         return $this->parser->createToken("number", $value);
     }
@@ -139,7 +139,7 @@ class JSONScanner implements Iterator
         $ret = preg_match($regex, $this->buffer, $match, 0, --$this->offset);
         if ($ret !== 1) {
             if ($ret === false) $ret = "false";
-            throw new Exception("Scan error $ret|$regex|" . substr($this->buffer, $this->offset, 20));
+            throw new Exception("Scan error {returnValue: $ret, regex: $regex, value: \"" . substr($this->buffer, $this->offset, 20) . '"}');
         }
 
         $this->offset += strlen($match[0]);

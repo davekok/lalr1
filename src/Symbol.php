@@ -25,6 +25,6 @@ abstract class Symbol
 
     public function __toString(): string
     {
-        return $name . ":" . bin2hex($key) . ":" . $precedence;
+        return $this->name . ":" . bin2hex($this->key) . ":" . $this->precedence;
     }
 }

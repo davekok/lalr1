@@ -66,15 +66,15 @@ use RuntimeException;
  *         }
  *     }
  */
-class Parser
+class Parser implements ParserInterface
 {
     /**
      * If a solution has been found, this property contains the value of the root token.
      */
-    public mixed $value;
-
-    private array $tokens = [];
+    private mixed $solution;
     private array $debugLog = [];
+    private array $tokens = [];
+    private int $pushCounter = 0;
 
     public function __construct(
         private readonly Symbols $symbols,
@@ -88,7 +88,7 @@ class Parser
     public function createToken(string $name, mixed $value = null): Token
     {
         if ($this->debug) {
-            $debugLog = "createToken($name, $value): ";
+            $debugLog = "createToken($name, ".var_export($value, true)."): ";
         }
         $type = $this->symbols->getByName($name) ?? null;
         if ($type === null) {
@@ -115,6 +115,7 @@ class Parser
         if ($this->debug) {
             $debugLog = "pushToken($token)";
         }
+
         if ($token->symbol instanceof LeafSymbol === false) {
             if ($this->debug) {
                 $this->debugLog[] = $debugLog . ": You should only push leaf symbols.";
@@ -124,42 +125,69 @@ class Parser
 
         $this->tokens[] = $token;
 
+        if ($this->debug) {
+            $this->debugLog[] = $debugLog;
+        }
+
         $this->reduce(false);
+
+        ++$this->pushCounter;
     }
 
     /**
-     * Signal end of tokens has been reached.
+     * Signal end of tokens has been reached and return solution.
      */
-    public function endOfTokens(): void
+    public function endOfTokens(): mixed
     {
+        if ($this->debug) {
+            $this->debugLog[] = "endOfTokens:: length: " . count($this->tokens);
+        }
+
+        if (count($this->tokens) === 0) {
+            return null;
+        }
+
         $this->reduce(true);
+
+        if (count($this->tokens) !== 1) {
+            if ($this->debug) {
+                $this->debugLog[] = "endOfTokens: token count is not 1 but " . count($this->tokens);
+            }
+
+            throw new NoSolutionParserException();
+        }
+
+        $token = array_pop($this->tokens);
+
+        // If token has the root symbol, we have a solution.
+        if ($token->symbol !== $this->symbols->rootSymbol) {
+            if ($this->debug) {
+                $this->debugLog[] = "endOfTokens: token is not root";
+            }
+
+            throw new NoSolutionParserException();
+        }
+
+        if ($this->debug) {
+            $this->debugLog[] = "endOfTokens: solution: ". $token;
+        }
+
+        return $token->value;
+    }
+
+    public function getDebugLog(): array
+    {
+        return $this->debugLog;
     }
 
     private function reduce(bool $endOfTokens): void
     {
         for (;;) {
             if ($this->debug) {
-                $debugLog = "reduce(".($endOfTokens?"endOfTokens":"").")";
+                $debugLog = "reduce";
             }
 
             $length = count($this->tokens);
-
-            if ($length === 0) {
-                // Edge case: In case the first push is null.
-                if ($endOfTokens === true) {
-                    if ($this->debug) {
-                        $this->debugLog[] = $debugLog . ": Edge case, first push is null";
-                    }
-
-                    throw new NoSolutionParserException();
-                }
-
-                if ($this->debug) {
-                    $this->debugLog[] = $debugLog . ": Invalid internal state.";
-                }
-
-                throw new ParserException("Invalid internal state.");
-            }
 
             // Skip the lookahead token until the end has been reached.
             if ($endOfTokens === false) {
@@ -198,46 +226,15 @@ class Parser
                 array_splice($this->tokens, $offset, $length - $offset, [$newToken]);
 
                 if ($this->debug) {
-                    $this->debugLog[] = $debugLog . ": reduced by " . bin2hex($rule->key);
+                    $this->debugLog[] = $debugLog . ": by rule " . bin2hex($rule->key);
                 }
 
                 // Check for more rules with new state.
                 continue 2;
             }
 
-            if ($length === 1) {
-                // Edge case: first push should be ignored as it only arms the look ahead.
-                if ($endOfTokens === false) {
-                    if ($this->debug) {
-                        $this->debugLog[] = $debugLog . ": edge case: first push";
-                    }
-                    return;
-                }
-
-                $token = array_pop($this->tokens);
-
-                // If token has the root symbol, we have a solution.
-                if ($token->symbol !== $this->symbols->rootSymbol) {
-                    if ($this->debug) {
-                        $this->debugLog[] = $debugLog . ": no solution found";
-                    }
-                    throw new NoSolutionParserException();
-                }
-
-                $this->value = $token->value;
-
-                if ($this->debug) {
-                    $this->debugLog[] = $debugLog . ": solution: ". $token;
-                }
-
-                return;
-            }
-
-            if ($endOfTokens === true) {
-                if ($this->debug) {
-                    $this->debugLog[] = $debugLog . ": no solution found";
-                }
-                throw new NoSolutionParserException();
+            if ($this->debug) {
+                $this->debugLog[] = $debugLog . ": length: " . count($this->tokens);
             }
 
             return;

@@ -8,11 +8,11 @@ class Token
 {
     public function __construct(
         public readonly Symbol $symbol,
-        public readonly mixed $value = null
+        public mixed $value = null
     ) {}
 
     public function __toString(): string
     {
-        return $this->symbol . ":" . var_export($value, true);
+        return $this->symbol . ":" . var_export($this->value, true);
     }
 }

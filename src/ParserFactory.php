@@ -6,12 +6,12 @@ namespace DaveKok\LALR1;
 
 use ReflectionClass;
 
-/**
- * This factory proceduce a new parser based on an object.
- */
-class ParserFactory
+class ParserFactory implements ParserFactoryInterface
 {
-    public static function createParser(object $parser): Parser
+    /**
+     * Create a parser based on the object provided. Reflection of the object should reveal attributes.
+     */
+    public function createParser(object $parser, bool $debug = false): ParserInterface
     {
         $reflection = new ReflectionClass($parser);
         [$attribute] = $reflection->getAttributes(Symbols::class);
@@ -27,6 +27,7 @@ class ParserFactory
                 );
             }
         }
-        return new Parser($symbols, $rulesFactory->createRules());
+
+        return new Parser($symbols, $rulesFactory->createRules(), $debug);
     }
 }

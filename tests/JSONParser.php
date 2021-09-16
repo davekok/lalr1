@@ -6,8 +6,8 @@ namespace DaveKok\LALR1\Tests;
 
 use DaveKok\LALR1\BranchSymbol;
 use DaveKok\LALR1\LeafSymbol;
-use DaveKok\LALR1\Parser;
-use DaveKok\LALR1\ParserFactory;
+use DaveKok\LALR1\ParserFactoryInterface;
+use DaveKok\LALR1\ParserInterface;
 use DaveKok\LALR1\RootSymbol;
 use DaveKok\LALR1\Rule;
 use DaveKok\LALR1\Symbols;
@@ -35,20 +35,25 @@ use stdClass;
 )]
 class JSONParser
 {
-    public readonly Parser $parser;
+    public readonly ParserInterface $parser;
 
-    public function __construct()
+    public function __construct(ParserFactoryInterface $factory, bool $debug = false)
     {
-        $this->parser = ParserFactory::createParser($this);
+        $this->parser = $factory->createParser($this, $debug);
     }
 
     public function parse(string $buffer): mixed
     {
-        foreach (new JSONScanner($this->parser, $buffer) as $token) {
-            $this->parser->pushToken($token);
+        try {
+            foreach (new JSONScanner($this->parser, $buffer) as $token) {
+                $this->parser->pushToken($token);
+            }
+            return $this->parser->endOfTokens();
+        } catch (\Throwable $e) {
+            echo "\n";
+            print_r($this->parser->getDebugLog());
+            throw $e;
         }
-        $this->parser->endOfTokens();
-        return $this->parser->value;
     }
 
     #[Rule("null")]
@@ -96,8 +101,8 @@ class JSONParser
     #[Rule("opening-bracket value")]
     public function startArray(Token $openingBracket, Token $value): Token
     {
-        $array = [$value->value];
-        return $this->parser->createToken("elements", $array);
+        $set = [$value->value];
+        return $this->parser->createToken("elements", $set);
     }
 
     #[Rule("elements comma value")]
@@ -107,8 +112,8 @@ class JSONParser
         return $elements;
     }
 
-    #[Rule("elements closing-brace")]
-    public function endArray(Token $elements, Token $closingBrace): Token
+    #[Rule("elements closing-bracket")]
+    public function endArray(Token $elements, Token $closingBracket): Token
     {
         return $this->parser->createToken("array", $elements->value);
     }

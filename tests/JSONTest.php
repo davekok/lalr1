@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace DaveKok\LALR1\Tests;
 
-use DaveKok\LALR1\Symbols;
-use DaveKok\LALR1\Symbol;
-use DaveKok\LALR1\Rule;
 use DaveKok\LALR1\Key;
+use DaveKok\LALR1\Parser;
+use DaveKok\LALR1\ParserInterface;
+use DaveKok\LALR1\ParserFactory;
+use DaveKok\LALR1\ParserFactoryInterface;
+use DaveKok\LALR1\Rule;
+use DaveKok\LALR1\Symbol;
+use DaveKok\LALR1\Symbols;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use stdClass;
+use Exception;
 
 class JSONTest extends TestCase
 {
@@ -29,7 +34,11 @@ class JSONTest extends TestCase
 
     public function testRuleAttributes(): void
     {
-        $parser = new JSONParser();
+        $factory = $this->createMock(ParserFactoryInterface::class);
+        $parser = $this->createMock(ParserInterface::class);
+        $factory->expects(static::once())->method('createParser')->willReturn($parser);
+
+        $parser = new JSONParser($factory);
         $reflection = new ReflectionClass($parser);
         $methods = $reflection->getMethods();
         $rules = [];
@@ -41,21 +50,21 @@ class JSONTest extends TestCase
             }
         }
         static::assertSame([
-            ["promoteNull", "null"],
-            ["promoteBoolean", "boolean"],
-            ["promoteNumber", "number"],
-            ["promoteString", "string"],
-            ["promoteObject", "object"],
-            ["promoteArray", "array"],
-            ["emptyArray", "opening-bracket closing-bracket"],
-            ["startArray", "opening-bracket value"],
-            ["addElement", "elements comma value"],
-            ["endArray", "elements closing-brace"],
-            ["emptyObject", "opening-brace closing-brace"],
-            ["startObject", "opening-brace key value"],
-            ["addProperty", "properties comma key value"],
-            ["closeObject", "properties closing-brace"],
-            ["promoteToKey", "string colon"],
+            ["promoteNull",    "null"                           ],
+            ["promoteBoolean", "boolean"                        ],
+            ["promoteNumber",  "number"                         ],
+            ["promoteString",  "string"                         ],
+            ["promoteObject",  "object"                         ],
+            ["promoteArray",   "array"                          ],
+            ["emptyArray",     "opening-bracket closing-bracket"],
+            ["startArray",     "opening-bracket value"          ],
+            ["addElement",     "elements comma value"           ],
+            ["endArray",       "elements closing-bracket"       ],
+            ["emptyObject",    "opening-brace closing-brace"    ],
+            ["startObject",    "opening-brace key value"        ],
+            ["addProperty",    "properties comma key value"     ],
+            ["closeObject",    "properties closing-brace"       ],
+            ["promoteToKey",   "string colon"                   ],
         ], $rules);
     }
 
@@ -80,27 +89,32 @@ class JSONTest extends TestCase
      */
     public function testSimple(mixed $expected, string $json): void
     {
-        static::assertSame($expected, (new JSONParser())->parse($json));
+        static::assertSame($expected, $this->createParser()->parse($json));
     }
 
     public function testObject(): void
     {
-        static::assertEquals(new stdClass, (new JSONParser())->parse('{}'));
-        static::assertEquals(new stdClass, (new JSONParser())->parse('{ }'));
+        static::assertEquals(new stdClass, $this->createParser()->parse('{}'));
+        static::assertEquals(new stdClass, $this->createParser()->parse('{ }'));
         $o = new stdClass;
         $o->key = "value";
-        static::assertEquals($o, (new JSONParser())->parse('{"key":"value"}'));
+        static::assertEquals($o, $this->createParser()->parse('{"key":"value"}'));
         $o = new stdClass;
         $o->key1 = "value1";
         $o->key2 = "value2";
-        static::assertEquals($o, (new JSONParser())->parse('{"key1": "value1", "key2": "value2"}'));
+        static::assertEquals($o, $this->createParser()->parse('{"key1": "value1", "key2": "value2"}'));
     }
 
     public function testArray(): void
     {
-        static::assertSame([], (new JSONParser())->parse('[]'));
-        static::assertSame([], (new JSONParser())->parse('[ ]'));
-        static::assertSame(["value"], (new JSONParser())->parse('["value"]'));
-        // static::assertSame(["value", 3748], (new JSONParser())->parse('["value", 3748]'));
+        static::assertSame([], $this->createParser()->parse('[]'));
+        static::assertSame([], $this->createParser()->parse('[ ]'));
+        static::assertSame(["value"], $this->createParser()->parse('["value"]'));
+        static::assertSame(["value", 3748], $this->createParser()->parse('["value", 3748]'));
+    }
+
+    private function createParser(): JSONParser
+    {
+        return new JSONParser(new ParserFactory(), true);
     }
 }

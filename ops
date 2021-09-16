@@ -19,7 +19,8 @@ case "${1:-}" in
         ;;
 
     test)
-        podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests ghcr.io/davekok/lalr1:test
+        shift
+        podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests ghcr.io/davekok/lalr1:test $*
         ;;
 
     "")
