@@ -19,7 +19,7 @@ class RulesFactory
 
     public function addRule(Rule $rule, callable $reduce): void
     {
-        $precedence  = 0;
+        $precedence  = $rule->precedence;
         $symbolKey   = "";
         $symbolNames = explode(" ", $rule->text);
         $count       = count($symbolNames);
@@ -30,11 +30,6 @@ class RulesFactory
         // of a name. It is used as the rule's precedence instead.
 
         foreach ($symbolNames as $key => $symbolName) {
-            if ($key === $lastKey && ($p = filter_var($symbolName, FILTER_VALIDATE_INT)) !== false) {
-                $precedence = $p;
-                break;
-            }
-
             $symbol     = $this->symbols->getByName($symbolName);
             $symbolKey .= $symbol->key;
 

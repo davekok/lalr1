@@ -116,11 +116,12 @@ class Parser implements ParserInterface
             $debugLog = "pushToken($token)";
         }
 
-        if ($token->symbol instanceof LeafSymbol === false) {
+        if ($token->symbol instanceof BranchSymbol === true) {
             if ($this->debug) {
-                $this->debugLog[] = $debugLog . ": You should only push leaf symbols.";
+                $this->debugLog[] = $debugLog . ": You should not push branch symbols.";
             }
-            throw new ParserException([$token], ": You should only push leaf symbols.");
+
+            throw new ParserException([$token], ": You should not push branch symbols.");
         }
 
         $this->tokens[] = $token;
@@ -198,7 +199,7 @@ class Parser implements ParserInterface
             }
 
             // Check if a rule matches and reduce.
-            for ($offset = $length - 1; $offset >= 0; --$offset) {
+            for ($offset = 0; $offset < $length; ++$offset) {
                 // Construct the key.
                 $key = "";
                 for ($o = $offset; $o < $length; ++$o) {
