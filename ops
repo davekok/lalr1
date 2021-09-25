@@ -3,27 +3,52 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-cd "$(dirname "$(readlink -f "$0")")"
+CONTAINER_REGISTRY="ghcr.io"
+SELF="$(readlink -f "$0")"
+DIR="$(dirname "$SELF")"
+ACCOUNT="$(basename "$(dirname "$DIR")")"
+PROJECT="$(basename "$DIR")"
+
+cd "$DIR"
 
 case "${1:-}" in
     login)
-        podman login
+        podman login "$CONTAINER_REGISTRY"
         ;;
 
     build)
-        buildah bud -t ghcr.io/davekok/lalr1:test test.containerfile
+        if [ ! -f "composer.lock" ]
+        then
+            exec "$SELF" update
+        fi
+
+        buildah bud -t "$CONTAINER_REGISTRY/$ACCOUNT/$PROJECT:test" test.containerfile
+        ;;
+
+    update)
+        podman run -it --rm -v ./:/app/ composer composer update --no-install
+        exec "$SELF" build
         ;;
 
     push)
-        podman push ghcr.io/davekok/lalr1:test
+        podman push "$CONTAINER_REGISTRY/$ACCOUNT/$PROJECT:test"
         ;;
 
     test)
         shift
-        podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests ghcr.io/davekok/lalr1:test $*
+        podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests "$CONTAINER_REGISTRY/$ACCOUNT/$PROJECT:test" php /app/vendor/bin/phpunit /app/tests $*
+        ;;
+
+    php)
+        shift
+        podman run -it --rm -v ./src:/app/src -v ./tests:/app/tests "$CONTAINER_REGISTRY/$ACCOUNT/$PROJECT:test" php $*
+        ;;
+
+    create-link)
+        ln -s "$SELF" "/usr/local/bin/$PROJECT"
         ;;
 
     "")
-        echo "Usage: $0 ( login | build | push | test )"
+        echo "Usage: $0 ( login | build | update | push | test | php | create-link)"
         ;;
 esac

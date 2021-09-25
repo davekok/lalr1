@@ -2,21 +2,21 @@
     "name": "davekok/lalr1",
     "description": "A Look Ahead, Left to right, Right most derivation algorithm implementation.",
     "type": "library",
-    "require-dev": {
-        "phpunit/phpunit": "^9.5"
-    },
     "license": "UNLICENSE",
-    "autoload": {
-        "psr-4": {
-            "DaveKok\\LALR1\\": "src/",
-            "DaveKok\\LALR1\\Tests\\": "tests/"
-        }
-    },
     "authors": [
         {
             "name": "Dave Kok",
             "email": "email@davekok.nl"
         }
     ],
-    "require": {}
+    "autoload": {
+        "psr-4": {
+            "DaveKok\\LALR1\\": "src/",
+            "DaveKok\\LALR1\\Tests\\": "tests/"
+        }
+    },
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    }
 }

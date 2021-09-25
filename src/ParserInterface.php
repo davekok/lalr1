@@ -13,11 +13,15 @@ interface ParserInterface
 
     /**
      * Push a previously created token.
+     *
+     * @throws ParserException
      */
     public function pushToken(Token $token): void;
 
     /**
      * Signal end of tokens and get the solution.
+     *
+     * @throws NoSolutionParserException
      */
     public function endOfTokens(): mixed;
 

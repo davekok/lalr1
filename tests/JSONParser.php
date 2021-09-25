@@ -101,8 +101,8 @@ class JSONParser
     #[Rule("opening-bracket value")]
     public function startArray(Token $openingBracket, Token $value): Token
     {
-        $set = [$value->value];
-        return $this->parser->createToken("elements", $set);
+        $elementsValue = [$value->value];
+        return $this->parser->createToken("elements", $elementsValue);
     }
 
     #[Rule("elements comma value")]
@@ -127,17 +127,19 @@ class JSONParser
     #[Rule("opening-brace key value")]
     public function startObject(Token $openingBrace, Token $key, Token $value): Token
     {
-        $o = new stdClass;
-        $key = $key->value;
-        $o->$key = $value->value;
-        return $this->parser->createToken("properties", $o);
+        $propertiesValue       = new stdClass;
+        $key                   = $key->value;
+        $propertiesValue->$key = $value->value;
+
+        return $this->parser->createToken("properties", $propertiesValue);
     }
 
     #[Rule("properties comma key value")]
     public function addProperty(Token $properties, Token $comma, Token $key, Token $value): Token
     {
-        $key = $key->value;
+        $key                     = $key->value;
         $properties->value->$key = $value->value;
+
         return $properties;
     }
 

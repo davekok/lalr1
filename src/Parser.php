@@ -83,7 +83,7 @@ class Parser implements ParserInterface
     ) {}
 
     /**
-     * Create a new token.
+     * {@inheritdoc}
      */
     public function createToken(string $name, mixed $value = null): Token
     {
@@ -108,7 +108,7 @@ class Parser implements ParserInterface
     }
 
     /**
-     * Push a token.
+     * {@inheritdoc}
      */
     public function pushToken(Token $token): void
     {
@@ -136,7 +136,7 @@ class Parser implements ParserInterface
     }
 
     /**
-     * Signal end of tokens has been reached and return solution.
+     * {@inheritdoc}
      */
     public function endOfTokens(): mixed
     {
@@ -176,6 +176,9 @@ class Parser implements ParserInterface
         return $token->value;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function getDebugLog(): array
     {
         return $this->debugLog;

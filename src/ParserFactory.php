@@ -9,7 +9,7 @@ use ReflectionClass;
 class ParserFactory implements ParserFactoryInterface
 {
     /**
-     * Create a parser based on the object provided. Reflection of the object should reveal attributes.
+     * {@inheritdoc}
      */
     public function createParser(object $parser, bool $debug = false): ParserInterface
     {

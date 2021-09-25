@@ -80,12 +80,12 @@ class ExpressionTest extends TestCase
     public function simpleExpressions(): array
     {
         return [
-            [13,  "8 + 5"  ],
-            [3,   "8 - 5"  ],
-            [40,  "8 * 5"  ],
-            [1.6, "8 / 5"  ],
-            [3,   "8 \\ 5" ],
-            [8,   "(8)"    ],
+            [13,  "8 + 5" ],
+            [3,   "8 - 5" ],
+            [40,  "8 * 5" ],
+            [1.6, "8 / 5" ],
+            [3,   "8 \\ 5"],
+            [8,   "(8)"   ],
         ];
     }
 
@@ -100,10 +100,10 @@ class ExpressionTest extends TestCase
     public function advancedExpressions(): array
     {
         return [
-            [43,  "8 * 5 + 3"  ],
-            [43,  "3 + 8 * 5"  ],
-            [43,  "3 + (8 * 5)"  ],
-            [55,  "(3 + 8) * 5"  ],
+            [43, "8 * 5 + 3"  ],
+            [43, "3 + 8 * 5"  ],
+            [43, "3 + (8 * 5)"],
+            [55, "(3 + 8) * 5"],
         ];
     }
 
