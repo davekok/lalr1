@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1\Tests;
+namespace davekok\lalr1\tests;
 
-use DaveKok\LALR1\Key;
-use DaveKok\LALR1\Parser;
-use DaveKok\LALR1\ParserInterface;
-use DaveKok\LALR1\ParserFactory;
-use DaveKok\LALR1\ParserFactoryInterface;
-use DaveKok\LALR1\Rule;
-use DaveKok\LALR1\Symbol;
-use DaveKok\LALR1\Symbols;
+use davekok\lalr1\Key;
+use davekok\lalr1\Parser;
+use davekok\lalr1\ParserInterface;
+use davekok\lalr1\ParserFactory;
+use davekok\lalr1\ParserFactoryInterface;
+use davekok\lalr1\Rule;
+use davekok\lalr1\Symbol;
+use davekok\lalr1\Symbols;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use stdClass;

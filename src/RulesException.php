@@ -6,7 +6,7 @@ namespace davekok\lalr1;
 
 use Exception;
 
-class ParserException extends Exception
+class RulesException extends Exception
 {
     public function __construct(string $message)
     {

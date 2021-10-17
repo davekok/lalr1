@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1;
+namespace davekok\lalr1;
 
-abstract class Symbol
+class Symbol
 {
+    public readonly SymbolType $type;
     public readonly string $key;
     public readonly string $name;
     public readonly int $precedence;
 
     public function __construct(
+        SymbolType $type,
+        string $key,
         string $name,
         int $precedence = 0
     ) {
+        $this->type = $type;
+        $this->key = $key;
         $this->name = $name;
         $this->precedence = $precedence;
     }
 
-    public function setKey(int $number): void
-    {
-        $this->key = Key::numberToKey($number);
-    }
-
     public function __toString(): string
     {
-        return $this->name . ":" . bin2hex($this->key) . ":" . $this->precedence;
+        return json_encode($this, JSON_THROW_ON_ERROR);
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1;
+namespace davekok\lalr1;
 
 use Exception;
 

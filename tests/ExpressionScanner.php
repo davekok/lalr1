@@ -2,98 +2,118 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1\Tests;
+namespace davekok\lalr1\tests;
 
-use DaveKok\LALR1\Token;
-use DaveKok\LALR1\Parser;
+use davekok\lalr1\{Parser,Token};
+use davekok\stream\{ScanBuffer,Scanner,ScanException};
 use Exception;
-use Iterator;
 
-class ExpressionScanner implements Iterator
+enum ExpressionState
 {
-    private ?Token $current;
-    private int $key;
-    private int $offset;
+    case YYSTART;
+    case YYINT;
+    case YYFLOAT;
+}
+
+class ExpressionScanner implements Scanner
+{
+    private ExpressionState $state = ExpressionState::YYSTART;
 
     public function __construct(
         private readonly Parser $parser,
-        private string $buffer
+        private readonly ScanBuffer $buffer = new ScanBuffer()
     ) {}
 
-    public function current(): Token
+    public function reset(): void
     {
-        return $this->current;
+        $this->buffer->reset();
+        $this->state = ExpressionState::YYSTART;
+        $this->parser->reset();
     }
 
-    public function key(): int
+    public function endOfInput(): void
     {
-        return $this->key;
-    }
-
-    public function next(): void
-    {
-        $this->current = $this->scan();
-        ++$this->key;
-    }
-
-    public function rewind(): void
-    {
-        $this->key = 0;
-        $this->offset = 0;
-        $this->current = $this->scan();
-    }
-
-    public function valid(): bool
-    {
-        return $this->current !== null;
-    }
-
-    public function scan(): ?Token
-    {
-        if ($this->offset >= strlen($this->buffer)) {
-            return null;
+        switch ($this->state) {
+            case ExpressionState::YYINT:
+                $this->parser->pushToken("number", $this->buffer->getInt());
+                break;
+            case ExpressionState::YYFLOAT:
+                $this->parser->pushToken("number", $this->buffer->getFloat());
+                break;
         }
-
-        return match(ord($this->buffer[$this->offset++])) {
-            0x09, 0x0A, 0x0D, 0x20 => $this->scanSpace(),
-            0x28 => $this->parser->createToken("("),
-            0x29 => $this->parser->createToken(")"),
-            0x2A => $this->parser->createToken("*"),
-            0x2B => $this->parser->createToken("+"),
-            0x2D => $this->parser->createToken("-"),
-            0x2F => $this->parser->createToken("/"),
-            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 => $this->scanNumber(),
-            0x5C => $this->parser->createToken("\\"),
-            default => throw new Exception("Scan error")
-        };
+        $this->parser->endOfTokens();
     }
 
-    private function scanSpace(): Token
+    public function scan(string $input): void
     {
-        // skip space
-        $this->grep('/([ ]+)/');
-
-        // do next scan
-        return $this->scan();
-    }
-
-    private function scanNumber(): Token
-    {
-        $value = $this->grep('/((?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[Ee][+-]?[0-9]+)?)/');
-        $value = strpos($value, ".") === false ? (int)$value : (float)$value;
-        return $this->parser->createToken("number", $value);
-    }
-
-    private function grep(string $regex): string
-    {
-        $ret = preg_match($regex, $this->buffer, $match, 0, --$this->offset);
-        if ($ret !== 1) {
-            if ($ret === false) $ret = "false";
-            throw new Exception("Scan error {returnValue: $ret, regex: $regex, value: \"" . substr($this->buffer, $this->offset, 20) . '"}');
+        $this->buffer->add($input);
+        while ($this->buffer->valid()) {
+            switch ($this->state) {
+                case ExpressionState::YYSTART:
+                    switch ($this->buffer->peek()) {
+                        case 0x09:case 0x0A:case 0x0D:case 0x20:
+                            $this->buffer->mark()->next();
+                            continue 3;
+                        case 0x28:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("(");
+                            continue 3;
+                        case 0x29:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken(")");
+                            continue 3;
+                        case 0x2A:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("*");
+                            continue 3;
+                        case 0x2B:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("+");
+                            continue 3;
+                        case 0x2D:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("-");
+                            continue 3;
+                        case 0x2F:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("/");
+                            continue 3;
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
+                            $this->buffer->mark()->next();
+                            $this->state = ExpressionState::YYINT;
+                            continue 3;
+                        case 0x5C:
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("\\");
+                            continue 3;
+                        default:
+                            throw new ScanException("Scan error");
+                    }
+                case ExpressionState::YYINT:
+                    switch ($this->buffer->peek()) {
+                        case 0x2E:
+                            $this->buffer->next();
+                            $this->state = ExpressionState::YYFLOAT;
+                            continue 3;
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
+                            $this->buffer->next();
+                            continue 3;
+                        default:
+                            $this->parser->pushToken("number", $this->buffer->getInt());
+                            $this->state = ExpressionState::YYSTART;
+                            continue 3;
+                    }
+                case ExpressionState::YYFLOAT:
+                    switch ($this->buffer->peek()) {
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
+                            $this->buffer->next();
+                            continue 3;
+                        default:
+                            $this->parser->pushToken("number", $this->buffer->getFloat());
+                            $this->state = ExpressionState::YYSTART;
+                            continue 3;
+                    }
+            }
         }
-
-        $this->offset += strlen($match[0]);
-
-        return $match[1];
     }
 }

@@ -2,25 +2,35 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1;
+namespace davekok\lalr1;
 
-use IteratorAggregate;
-use ArrayIterator;
-use Traversable;
+use ReflectionMethod;
 
-class Rules implements IteratorAggregate
+class Rules
 {
-    public function __construct(
-        private readonly array $rules
-    ) {}
+    private readonly array $symbols;
+    private readonly array $rules;
+    private readonly ReflectionMethod $solutionMethod;
 
-    public function get(string $key): ?RuleStruct
+    public function __construct(array $symbols, array $rules, ReflectionMethod $solutionMethod)
+    {
+        $this->symbols        = $symbols;
+        $this->rules          = $rules;
+        $this->solutionMethod = $solutionMethod;
+    }
+
+    public function getSymbol(string $key): ?Symbol
+    {
+        return $this->symbols[$key] ?? null;
+    }
+
+    public function getRule(string $key): ?Rule
     {
         return $this->rules[$key] ?? null;
     }
 
-    public function getIterator(): Traversable
+    public function solution(object $rulesObject, mixed $value): void
     {
-        return new ArrayIterator(array_values($this->rules));
+        $this->solutionMethod->invoke($rulesObject, $value);
     }
 }

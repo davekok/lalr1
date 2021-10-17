@@ -2,157 +2,445 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1\Tests;
+namespace davekok\lalr1\tests;
 
-use DaveKok\LALR1\Token;
-use DaveKok\LALR1\Parser;
-use Exception;
-use Iterator;
+use davekok\stream\{ScanBuffer,Scanner,ScanException};
+use davekok\lalr1\Token;
+use davekok\lalr1\Parser;
 
-class JSONScanner implements Iterator
+enum JSONState {
+    case YYSTART;
+    case YYSTRING;
+    case YYESCAPE;
+    case YYCODEPOINT;
+    case YYNUMBER;
+    case YYFRACTION;
+    case YYEXPONENT_SIGN;
+    case YYEXPONENT;
+    case YYTRUE_T;
+    case YYTRUE_R;
+    case YYTRUE_U;
+    case YYTRUE_E;
+    case YYFALSE_F;
+    case YYFALSE_A;
+    case YYFALSE_L;
+    case YYFALSE_S;
+    case YYFALSE_E;
+    case YYNULL_N;
+    case YYNULL_U;
+    case YYNULL_L;
+    case YYNULL_LL;
+}
+
+class JSONScanner implements Scanner
 {
-    private ?Token $current;
-    private int $key;
-    private int $offset;
+    private string $string;
+    private int $codePoint;
+    private int $codePointCount;
+    private bool $negative = false;
+    private bool $negativeExponent = false;
+    private int $number;
+    private float $fraction;
 
     public function __construct(
         private readonly Parser $parser,
-        private string $buffer
+        private ScanBuffer $buffer = new ScanBuffer()
     ) {}
 
-    public function current(): Token
+    public function scan(string $input): void
     {
-        return $this->current;
-    }
-
-    public function key(): int
-    {
-        return $this->key;
-    }
-
-    public function next(): void
-    {
-        $this->current = $this->scan();
-        ++$this->key;
-    }
-
-    public function rewind(): void
-    {
-        $this->key = 0;
-        $this->offset = 0;
-        $this->current = $this->scan();
-    }
-
-    public function valid(): bool
-    {
-        return $this->current !== null;
-    }
-
-    public function scan(): ?Token
-    {
-        if ($this->offset >= strlen($this->buffer)) {
-            return null;
+        $this->buffer->add($input);
+        while ($this->buffer->valid()) {
+            switch ($this->state) {
+                case JSONState::YYSTART:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x00:case 0x01:case 0x02:case 0x03:case 0x04:case 0x05:case 0x06:case 0x07:
+                        case 0x08:                    case 0x0B:case 0x0C:          case 0x0E:case 0x0F:
+                        case 0x10:case 0x11:case 0x12:case 0x13:case 0x14:case 0x15:case 0x16:case 0x17:
+                        case 0x18:case 0x19:case 0x1A:case 0x0B:case 0x0C:case 0x1D:case 0x0E:case 0x0F:
+                        case 0x7F: // control characters
+                            throw new ScanException("Control characters not allowed.");
+                        case 0x09:case 0x0A:case 0x0D:case 0x20: // skip space characters
+                            $this->buffer->next();
+                            continue 3;
+                        case 0x22: // start string
+                            $this->buffer->next()->mark(); // skip quote
+                            $this->state  = JSONState::YYSTRING;
+                            $this->string = "";
+                            continue 3;
+                        case 0x2D: // minus
+                            $this->buffer->next()->mark();
+                            $this->negative = true;
+                            $this->number   = 0;
+                            $this->state    = JSONState::YYMINUS;
+                            continue 3;
+                        case 0x2C: // comma
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken(",");
+                            continue 3;
+                        case 0x30:
+                            $this->buffer->mark()->next();
+                            $this->negative = false;
+                            $this->number = 0;
+                            $this->state  = JSONState::YYZERO;
+                            continue 3;
+                        case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
+                            $this->buffer->mark()->next();
+                            $this->negative = false;
+                            $this->number   = $c - 0x30;
+                            $this->state    = JSONState::YYNUMBER;
+                            continue 3;
+                        case 0x3A: // colon
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken(":");
+                            continue 3;
+                        case 0x5B: // opening bracket
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("[");
+                            continue 3;
+                        case 0x5D: // closing bracket
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("]");
+                            continue 3;
+                        case 0x66: // f
+                            $this->buffer->mark()->next();
+                            $this->state = JSONState::YYFALSE_A;
+                            continue 3;
+                        case 0x6E: // n
+                            $this->buffer->mark()->next();
+                            $this->state = JSONState::YYNULL_U;
+                            continue 3;
+                        case 0x74: // t
+                            $this->buffer->mark()->next();
+                            $this->state = JSONState::YYTRUE_R;
+                            continue 3;
+                        case 0x7B: // opening brace
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("{");
+                            continue 3;
+                        case 0x7D: // closing brace
+                            $this->buffer->mark()->next();
+                            $this->parser->pushToken("}");
+                            continue 3;
+                        default:
+                            throw new ScanException("Non ASCII characters not support outside string.");
+                    }
+                case JSONState::YYSTRING:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x00:case 0x01:case 0x02:case 0x03:case 0x04:case 0x05:case 0x06:case 0x07:
+                        case 0x08:                    case 0x0B:case 0x0C:          case 0x0E:case 0x0F:
+                        case 0x10:case 0x11:case 0x12:case 0x13:case 0x14:case 0x15:case 0x16:case 0x17:
+                        case 0x18:case 0x19:case 0x1A:case 0x0B:case 0x0C:case 0x1D:case 0x0E:case 0x0F:
+                        case 0x7F: // control characters
+                            throw new ScanException("Control characters not allowed.");
+                        case 0x22:
+                            $this->string .= $this->buffer->getString();
+                            $this->parser->pushToken("string", $this->string);
+                            $this->buffer->next()->mark();
+                            continue 3;
+                        case 0x5C:
+                            $this->string .= $this->buffer->getString();
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYESCAPE;
+                            continue 3;
+                        default:
+                            if ($c >= 0x80) {
+                                // TODO: validate UTF-8 sequence, is UTF-8 and not over long.
+                            }
+                    }
+                case JSONState::YYESCAPE: {
+                    switch ($this->buffer->peek()) {
+                        case 0x22:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\"";
+                            continue 3;
+                        case 0x2F:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "/";
+                            continue 3;
+                        case 0x62:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\x07";
+                            continue 3;
+                        case 0x66:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\x0C";
+                            continue 3;
+                        case 0x6E:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\n";
+                            continue 3;
+                        case 0x72:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\r";
+                            continue 3;
+                        case 0x74:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\t";
+                            continue 3;
+                        case 0x75:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYCODEPOINT;
+                            $this->codePoint = 0;
+                            $this->codePointCount = 0;
+                            continue 3;
+                        case 0x5C:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTRING;
+                            $this->string .= "\\";
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid escape sequence.");
+                    }
+                case JSONState::YYCODEPOINT:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:
+                        case 0x38:case 0x39:
+                            $this->codePoint <<= 4;
+                            $this->codePoint |= $c - 0x30;
+                            break;
+                        case 0x41:case 0x42:case 0x43:case 0x44:case 0x45:case 0x46:
+                            $this->codePoint <<= 4;
+                            $this->codePoint |= $c - 0x37;
+                            break;
+                        case 0x61:case 0x62:case 0x63:case 0x64:case 0x65:case 0x66:
+                            $this->codePoint <<= 4;
+                            $this->codePoint |= $c - 0x57;
+                            break;
+                        default:
+                            throw new ScanException("Invalid escape sequence.");
+                    }
+                    if (++$this->codePointCount == 4) {
+                        $this->state = JSONState::YYSTRING;
+                        $this->string .= self::utf8($this->codePoint);
+                    }
+                    continue 2;
+                case JSONState::YYTRUE_R:
+                    switch ($this->buffer->peek()) {
+                        case 0x72:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYTRUE_U;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYTRUE_U:
+                    switch ($this->buffer->peek()) {
+                        case 0x75:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYTRUE_E;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYTRUE_E:
+                    switch ($this->buffer->peek()) {
+                        case 0x65:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYSTART;
+                            $this->buffer->pushToken("true");
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYFALSE_A:
+                    switch ($this->buffer->peek()) {
+                        case 0x61:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYFALSE_L;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYFALSE_L:
+                    switch ($this->buffer->peek()) {
+                        case 0x6C:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYFALSE_S;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYFALSE_S:
+                    switch ($this->buffer->peek()) {
+                        case 0x73:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYFALSE_E;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYFALSE_E:
+                    switch ($this->buffer->peek()) {
+                        case 0x65:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYSTART;
+                            $this->buffer->pushToken("false");
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYNULL_U:
+                    switch ($this->buffer->peek()) {
+                        case 0x6E:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYNULL_L;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYNULL_L:
+                    switch ($this->buffer->peek()) {
+                        case 0x6C:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYNULL_LL;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYNULL_LL:
+                    switch ($this->buffer->peek()) {
+                        case 0x6C:
+                            $this->buffer->next();
+                            $this->state = JSONState::YYSTART;
+                            $this->buffer->pushToken("null");
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid key word");
+                    }
+                case JSONState::YYMINUS:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x30:
+                            $this->buffer->mark()->next();
+                            $this->state = JSONState::YYZERO;
+                            continue 3;
+                        case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
+                            $this->buffer->mark()->next();
+                            $this->number += $c - 0x30;
+                            $this->state = JSONState::YYNUMBER;
+                            continue 3;
+                        default:
+                            throw new ScanException("Stray minus sign.");
+                    }
+                case JSONState::YYZERO:
+                    switch ($this->buffer->peek()) {
+                        case 0x2E:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYFRACTION;
+                            continue 3;
+                        default:
+                            $this->parser->pushToken("number", 0);
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYSTART;
+                            continue;
+                    }
+                case JSONState::YYNUMBER:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:
+                        case 0x38:case 0x39:
+                            $this->buffer->next()->mark();
+                            $this->number *= 10;
+                            $this->number += $c - 0x30;
+                            continue 3;
+                        case 0x2E: // dot
+                            $this->buffer->next()->mark();
+                            $this->fraction = $this->number;
+                            $this->number   = 10;
+                            $this->state    = JSONState::FRACTION;
+                            continue 3;
+                        case 0x45:case 0x65:
+                            $this->buffer->next()->mark();
+                            $this->fraction = $this->number;
+                            $this->state = JSONState::YYEXPONENT_SIGN;
+                            continue 3;
+                        default:
+                            $this->buffer->next()->mark();
+                            if ($this->negative) {
+                                $this->number = -$this->number;
+                            }
+                            $this->parser->pushToken("number", $this->number);
+                            $this->state = JSONState::YYSTART;
+                            continue 3;
+                    }
+                case JSONState::YYFRACTION:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:
+                        case 0x38:case 0x39:
+                            $this->buffer->next()->mark();
+                            $this->fraction += ($this->fraction - 0x30) / $this->number;
+                            $this->number *= 10;
+                            continue 3;
+                        case 0x45:case 0x65:
+                            $this->buffer->next()->mark();
+                            $this->state = JSONState::YYEXPONENT_SIGN;
+                            continue 3;
+                        default:
+                            $this->parser->pushToken("number", $this->number);
+                            $this->state = JSONState::YYSTART;
+                            continue 3;
+                    }
+                case JSONState::YYEXPONENT_SIGN:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:
+                        case 0x38:case 0x39:
+                            $this->buffer->next()->mark();
+                            $this->negativeExponent = false;
+                            $this->number = $c - 0x30;
+                            $this->state = JSONState::YYEXPONENT;
+                            continue 3;
+                        case 0x2B: // minus
+                            $this->buffer->next()->mark();
+                            $this->negativeExponent = true;
+                            $this->number = 0;
+                            $this->state = JSONState::YYEXPONENT;
+                            continue 3;
+                        case 0x2D: // plus
+                            $this->buffer->next()->mark();
+                            $this->negativeExponent = false;
+                            $this->number = 0;
+                            $this->state = JSONState::YYEXPONENT;
+                            continue 3;
+                        default:
+                            throw new ScanException("Invalid exponent");
+                    }
+                case JSONState::YYEXPONENT:
+                    $c = $this->buffer->peek();
+                    switch ($c) {
+                        case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:
+                        case 0x38:case 0x39:
+                            $this->buffer->next()->mark();
+                            $this->number += $c - 0x30;
+                            continue 3;
+                        default:
+                            if ($this->negativeExponent) {
+                                $this->fraction /= 10 ** $this->number;
+                            } else {
+                                $this->fraction *= 10 ** $this->number;
+                            }
+                            $this->parser->pushToken("number", $this->fraction);
+                            $this->state = JSONState::YYSTART;
+                            continue 3;
+                    }
+            }
         }
-
-        return match(ord($this->buffer[$this->offset++])) {
-            0x09, 0x0A, 0x0D, 0x20 => $this->scanSpace(),
-            0x22 => $this->scanString(),
-            0x2C => $this->parser->createToken("comma"),
-            0x2D, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39 => $this->scanNumber(),
-            0x3A => $this->parser->createToken("colon"),
-            0x5B => $this->parser->createToken("opening-bracket"),
-            0x5D => $this->parser->createToken("closing-bracket"),
-            0x66 => $this->scanFalse(),
-            0x6E => $this->scanNull(),
-            0x74 => $this->scanTrue(),
-            0x7B => $this->parser->createToken("opening-brace"),
-            0x7D => $this->parser->createToken("closing-brace"),
-            default => throw new Exception("Scan error")
-        };
-    }
-
-    private function scanSpace(): Token
-    {
-        // skip space
-        $this->grep('/([ ]+)/');
-
-        // do next scan
-        return $this->scan();
-    }
-
-    private function scanNull(): Token
-    {
-        if (substr_compare($this->buffer, "null", --$this->offset, 4) !== 0) {
-            throw new Exception("Scan error");
-        }
-
-        $this->offset += 4;
-
-        return $this->parser->createToken("null", null);
-    }
-
-    private function scanTrue(): Token
-    {
-        if (substr_compare($this->buffer, "true", --$this->offset, 4) !== 0) {
-            throw new Exception("Scan error");
-        }
-
-        $this->offset += 4;
-
-        return $this->parser->createToken("boolean", true);
-    }
-
-    private function scanFalse(): Token
-    {
-        if (substr_compare($this->buffer, "false", --$this->offset, 5) !== 0) {
-            throw new Exception("Scan error");
-        }
-
-        $this->offset += 5;
-
-        return $this->parser->createToken("boolean", false);
-    }
-
-    private function scanNumber(): Token
-    {
-        $value = $this->grep('/(-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[Ee][+-]?[0-9]+)?)/');
-        $value = strpos($value, ".") === false ? (int)$value : (float)$value;
-        return $this->parser->createToken("number", $value);
-    }
-
-    private function scanString(): Token
-    {
-        $value = $this->grep(
-            '~"((?:[\x20-\x21\x23-\x5B\x5D-\x7E\x80-\xFF]|\\\\(?:["\\\\/bfnrt]|u[0-9A-Fa-f]{4}))*)"~'
-        );
-        $value = str_replace(['\b', '\t', '\n', '\f', '\r'], ["\x08", "\t", "\n", "\f", "\r"], $value);
-        $value = preg_replace_callback(
-            '/\\\\u([0-9A-Fa-f]{4})/',
-            fn($m) => self::utf8(hexdec($m[1])),
-            $value
-        );
-        return $this->parser->createToken("string", $value);
-    }
-
-    private function grep(string $regex): string
-    {
-        $ret = preg_match($regex, $this->buffer, $match, 0, --$this->offset);
-        if ($ret !== 1) {
-            if ($ret === false) $ret = "false";
-            throw new Exception("Scan error {returnValue: $ret, regex: $regex, value: \"" . substr($this->buffer, $this->offset, 20) . '"}');
-        }
-
-        $this->offset += strlen($match[0]);
-
-        return $match[1];
     }
 
     private static function utf8(int $codePoint): string
     {
-        if ($codePoint < 0) {
-            throw new LogicException("Negative code points are not supported.");
-        }
-
         if ($codePoint <= 0x007F) {
             return chr($codePoint);
         }
@@ -175,6 +463,6 @@ class JSONScanner implements Iterator
                 .  chr($codePoint & 0b00111111 | 0b10000000);
         }
 
-        throw new LogicException("Code points larger then 1,114,111 are not supported.");
+        throw new ScanException("Code points larger then 10FFFF are not supported.");
     }
 }

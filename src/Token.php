@@ -2,17 +2,21 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1;
+namespace davekok\lalr1;
 
 class Token
 {
-    public function __construct(
-        public readonly Symbol $symbol,
-        public mixed $value = null
-    ) {}
+    public readonly Symbol $symbol;
+    public mixed $value;
+
+    public function __construct(Symbol $symbol, mixed $value = null)
+    {
+        $this->symbol = $symbol;
+        $this->value  = $value;
+    }
 
     public function __toString(): string
     {
-        return $this->symbol . ":" . var_export($this->value, true);
+        return json_encode($this, JSON_THROW_ON_ERROR);
     }
 }

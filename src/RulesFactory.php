@@ -2,42 +2,73 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1;
+namespace davekok\lalr1;
+
+use davekok\lalr1\attributes\Rule as RuleAttribute;
+use davekok\lalr1\attributes\Symbol as SymbolAttribute;
+use davekok\lalr1\attributes\Symbols as SymbolsAttribute;
+use davekok\lalr1\attributes\Solution as SolutionAttribute;
+use ReflectionClass;
 
 class RulesFactory
 {
-    private array $rules = [];
-
-    public function __construct(
-        private readonly Symbols $symbols
-    ) {}
-
-    public function createRules(): Rules
+    public function createRules(ReflectionClass $rulesClass): Rules
     {
-        return new Rules($this->rules);
-    }
+        $symbolsAttributes = $rulesClass->getAttributes(SymbolsAttribute::class);
+        if (count($symbolsAttributes) === 0) {
+            throw new RulesException("Symbols attribute is missing");
+        }
 
-    public function addRule(Rule $rule, callable $reduce): void
-    {
-        $precedence  = $rule->precedence;
-        $symbolKey   = "";
-        $symbolNames = explode(" ", $rule->text);
-        $count       = count($symbolNames);
-        $lastKey     = $count - 1;
+        $symbols = [];
+        $haveRoot = false;
+        foreach ($symbolsAttributes[0]->newInstance()->symbols as $index => $symbolAttr) {
+            $key = Key::createKey($index);
+            if ($symbolAttr->type === SymbolType::ROOT) {
+                if ($haveRoot === true) {
+                    throw new RulesException("There can be only one root symbol.");
+                }
+                $haveRoot = false;
+            }
+            $symbols[$symbolAttr->name] = new Symbol($symbolAttr->type, $key, $symbolAttr->name, $symbolAttr->precedence);
+        }
 
-        // By default the rule's precedence is set by left most leaf symbol, if it
-        // has its precedence set. However, if the last symbol is a number instead
-        // of a name. It is used as the rule's precedence instead.
+        $solutionMethod = null;
+        $rules = [];
+        foreach ($rulesClass->getMethods() as $method) {
+            foreach ($method->getAttributes() as $attr) {
+                switch (true) {
+                    case $attr->getName() === SolutionAttribute::class:
+                        if ($solutionMethod !== null) {
+                            throw new RulesException("There can be only one solution method.");
+                        }
+                        $solutionMethod = $method;
+                        break;
 
-        foreach ($symbolNames as $key => $symbolName) {
-            $symbol     = $this->symbols->getByName($symbolName);
-            $symbolKey .= $symbol->key;
+                    case $attr->getName() === RuleAttribute::class:
+                        $ruleAttr = $attr->newInstance();
 
-            if ($precedence === 0 && $symbol instanceof LeafSymbol && $symbol->precedence > 0) {
-                $precedence = $symbol->precedence;
+                        $key = Key::createKey();
+                        $precedence = $ruleAttr->precedence;
+                        foreach (explode(" ", $ruleAttr->text) as $symbolName) {
+                            $symbol = $symbols[$symbolName];
+                            if ($symbol == null) {
+                                throw new RulesException("No such symbol '$symbolName'");
+                            }
+                            $key .= $symbol->key;
+                            if ($precedence === 0 && $symbol->type === SymbolType::LEAF && $symbol->precedence != 0) {
+                                $precedence = $symbol->precedence;
+                            }
+                        }
+                        $rules[$key] = new Rule($key, $ruleAttr->text, $precedence, $method);
+                        break;
+                }
             }
         }
 
-        $this->rules[$symbolKey] = new RuleStruct($symbolKey, $precedence, $reduce, $rule->text);
+        if ($solutionMethod === null) {
+            throw new RulesException("Solution method is missing.");
+        }
+
+        return new Rules($symbols, $rules, $solutionMethod);
     }
 }

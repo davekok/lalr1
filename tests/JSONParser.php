@@ -2,44 +2,39 @@
 
 declare(strict_types=1);
 
-namespace DaveKok\LALR1\Tests;
+namespace davekok\lalr1\tests;
 
-use DaveKok\LALR1\BranchSymbol;
-use DaveKok\LALR1\LeafSymbol;
-use DaveKok\LALR1\ParserFactoryInterface;
-use DaveKok\LALR1\ParserInterface;
-use DaveKok\LALR1\RootSymbol;
-use DaveKok\LALR1\Rule;
-use DaveKok\LALR1\Symbols;
-use DaveKok\LALR1\Token;
+use davekok\lalr1\attributes\{Rule,Solution,Symbol,Symbols};
+use davekok\lalr1\SymbolType;
+use davekok\lalr1\Token;
 use Exception;
 use stdClass;
 
 #[Symbols(
-    new LeafSymbol("null"),
-    new LeafSymbol("boolean"),
-    new LeafSymbol("number"),
-    new LeafSymbol("string"),
-    new LeafSymbol("opening-brace"),
-    new LeafSymbol("closing-brace"),
-    new LeafSymbol("opening-bracket"),
-    new LeafSymbol("closing-bracket"),
-    new LeafSymbol("comma"),
-    new LeafSymbol("colon", 1),
-    new BranchSymbol("object"),
-    new BranchSymbol("array"),
-    new BranchSymbol("properties"),
-    new BranchSymbol("elements"),
-    new BranchSymbol("key"),
-    new RootSymbol("value")
+    new Symbol(SymbolType::LEAF, "null"),
+    new Symbol(SymbolType::LEAF, "boolean"),
+    new Symbol(SymbolType::LEAF, "number"),
+    new Symbol(SymbolType::LEAF, "string"),
+    new Symbol(SymbolType::LEAF, "opening-brace"),
+    new Symbol(SymbolType::LEAF, "closing-brace"),
+    new Symbol(SymbolType::LEAF, "opening-bracket"),
+    new Symbol(SymbolType::LEAF, "closing-bracket"),
+    new Symbol(SymbolType::LEAF, "comma"),
+    new Symbol(SymbolType::LEAF, "colon", 1),
+    new Symbol(SymbolType::BRANCH, "object"),
+    new Symbol(SymbolType::BRANCH, "array"),
+    new Symbol(SymbolType::BRANCH, "properties"),
+    new Symbol(SymbolType::BRANCH, "elements"),
+    new Symbol(SymbolType::BRANCH, "key"),
+    new Symbol(SymbolType::ROOT, "value")
 )]
 class JSONParser
 {
-    public readonly ParserInterface $parser;
+    public readonly Parser $parser;
 
-    public function __construct(ParserFactoryInterface $factory, bool $debug = false)
+    public function __construct(Parser $parser)
     {
-        $this->parser = $factory->createParser($this, $debug);
+        $this->parser = $parser;
     }
 
     public function parse(string $buffer): mixed
@@ -54,6 +49,11 @@ class JSONParser
             print_r($this->parser->getDebugLog());
             throw $e;
         }
+    }
+
+    #[Solution]
+    public function solution(Token $nullToken): voi
+    {
     }
 
     #[Rule("null")]
