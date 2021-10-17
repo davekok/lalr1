@@ -14,6 +14,8 @@ enum JSONState {
     case YYESCAPE;
     case YYCODEPOINT;
     case YYNUMBER;
+    case YYMINUS;
+    case YYZERO;
     case YYFRACTION;
     case YYEXPONENT_SIGN;
     case YYEXPONENT;
@@ -34,11 +36,12 @@ enum JSONState {
 
 class JSONScanner implements Scanner
 {
+    private JSONState $state = JSONState::YYSTART;
     private string $string;
     private int $codePoint;
     private int $codePointCount;
-    private bool $negative = false;
-    private bool $negativeExponent = false;
+    private bool $negative;
+    private bool $negativeExponent;
     private int $number;
     private float $fraction;
 
@@ -46,6 +49,17 @@ class JSONScanner implements Scanner
         private readonly Parser $parser,
         private ScanBuffer $buffer = new ScanBuffer()
     ) {}
+
+    public function reset(): void
+    {
+        $this->buffer->reset();
+        $this->state = JSONState::YYSTART;
+    }
+
+    public function endOfInput(): void
+    {
+        $this->parser->endOfTokens();
+    }
 
     public function scan(string $input): void
     {
@@ -150,7 +164,7 @@ class JSONScanner implements Scanner
                                 // TODO: validate UTF-8 sequence, is UTF-8 and not over long.
                             }
                     }
-                case JSONState::YYESCAPE: {
+                case JSONState::YYESCAPE:
                     switch ($this->buffer->peek()) {
                         case 0x22:
                             $this->buffer->next()->mark();
@@ -248,7 +262,7 @@ class JSONScanner implements Scanner
                         case 0x65:
                             $this->buffer->next();
                             $this->state = JSONState::YYSTART;
-                            $this->buffer->pushToken("true");
+                            $this->parser->pushToken("boolean", true);
                             continue 3;
                         default:
                             throw new ScanException("Invalid key word");
@@ -285,7 +299,7 @@ class JSONScanner implements Scanner
                         case 0x65:
                             $this->buffer->next();
                             $this->state = JSONState::YYSTART;
-                            $this->buffer->pushToken("false");
+                            $this->parser->pushToken("boolean", false);
                             continue 3;
                         default:
                             throw new ScanException("Invalid key word");
@@ -313,7 +327,7 @@ class JSONScanner implements Scanner
                         case 0x6C:
                             $this->buffer->next();
                             $this->state = JSONState::YYSTART;
-                            $this->buffer->pushToken("null");
+                            $this->parser->pushToken("null");
                             continue 3;
                         default:
                             throw new ScanException("Invalid key word");
@@ -343,7 +357,7 @@ class JSONScanner implements Scanner
                             $this->parser->pushToken("number", 0);
                             $this->buffer->next()->mark();
                             $this->state = JSONState::YYSTART;
-                            continue;
+                            continue 3;
                     }
                 case JSONState::YYNUMBER:
                     $c = $this->buffer->peek();
@@ -358,7 +372,7 @@ class JSONScanner implements Scanner
                             $this->buffer->next()->mark();
                             $this->fraction = $this->number;
                             $this->number   = 10;
-                            $this->state    = JSONState::FRACTION;
+                            $this->state    = JSONState::YYFRACTION;
                             continue 3;
                         case 0x45:case 0x65:
                             $this->buffer->next()->mark();

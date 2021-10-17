@@ -6,9 +6,7 @@ namespace davekok\lalr1\tests;
 
 use davekok\lalr1\Key;
 use davekok\lalr1\Parser;
-use davekok\lalr1\ParserInterface;
-use davekok\lalr1\ParserFactory;
-use davekok\lalr1\ParserFactoryInterface;
+use davekok\lalr1\RulesFactory;
 use davekok\lalr1\Rule;
 use davekok\lalr1\Symbol;
 use davekok\lalr1\Symbols;
@@ -17,57 +15,29 @@ use ReflectionClass;
 use stdClass;
 use Exception;
 
+/**
+ * @coversDefaultClass \davekok\lalr1\Parser
+ * @covers ::__construct
+ * @covers ::createToken
+ * @covers ::endOfTokens
+ * @covers ::pushToken
+ * @covers ::reduce
+ * @covers ::setRulesObject
+ * @uses \davekok\lalr1\attributes\Rule
+ * @uses \davekok\lalr1\attributes\Solution
+ * @uses \davekok\lalr1\attributes\Symbol
+ * @uses \davekok\lalr1\attributes\Symbols
+ * @uses \davekok\lalr1\Key
+ * @uses \davekok\lalr1\Rule
+ * @uses \davekok\lalr1\Rules
+ * @uses \davekok\lalr1\RulesFactory
+ * @uses \davekok\lalr1\Symbol
+ * @uses \davekok\lalr1\SymbolType
+ * @uses \davekok\lalr1\Token
+ * @uses \davekok\lalr1\Tokens
+ */
 class JSONTest extends TestCase
 {
-    public function testSymbolAttributes(): void
-    {
-        $reflection = new ReflectionClass(JSONParser::class);
-        [$symbols] = $reflection->getAttributes(Symbols::class);
-        $symbols = $symbols->newInstance();
-        static::assertInstanceOf(Symbols::class, $symbols);
-        foreach ($symbols as $key => $type) {
-            static::assertInstanceOf(Symbol::class, $type);
-            static::assertSame($key, Key::keyToNumber($type->key));
-        }
-        static::assertSame("value", $symbols->rootSymbol->name);
-    }
-
-    public function testRuleAttributes(): void
-    {
-        $factory = $this->createMock(ParserFactoryInterface::class);
-        $parser = $this->createMock(ParserInterface::class);
-        $factory->expects(static::once())->method('createParser')->willReturn($parser);
-
-        $parser = new JSONParser($factory);
-        $reflection = new ReflectionClass($parser);
-        $methods = $reflection->getMethods();
-        $rules = [];
-        foreach ($methods as $method) {
-            $attributes = $method->getAttributes(Rule::class);
-            if (count($attributes) === 1) {
-                [$attribute] = $attributes;
-                $rules[] = [$method->name, $attribute->newInstance()->text];
-            }
-        }
-        static::assertSame([
-            ["promoteNull",    "null"                           ],
-            ["promoteBoolean", "boolean"                        ],
-            ["promoteNumber",  "number"                         ],
-            ["promoteString",  "string"                         ],
-            ["promoteObject",  "object"                         ],
-            ["promoteArray",   "array"                          ],
-            ["emptyArray",     "opening-bracket closing-bracket"],
-            ["startArray",     "opening-bracket value"          ],
-            ["addElement",     "elements comma value"           ],
-            ["endArray",       "elements closing-bracket"       ],
-            ["emptyObject",    "opening-brace closing-brace"    ],
-            ["startObject",    "opening-brace key value"        ],
-            ["addProperty",    "properties comma key value"     ],
-            ["closeObject",    "properties closing-brace"       ],
-            ["promoteToKey",   "string colon"                   ],
-        ], $rules);
-    }
-
     public function simpleData(): array
     {
         return [
@@ -89,32 +59,11 @@ class JSONTest extends TestCase
      */
     public function testSimple(mixed $expected, string $json): void
     {
-        static::assertSame($expected, $this->createParser()->parse($json));
-    }
-
-    public function testObject(): void
-    {
-        static::assertEquals(new stdClass, $this->createParser()->parse('{}'));
-        static::assertEquals(new stdClass, $this->createParser()->parse('{ }'));
-        $o = new stdClass;
-        $o->key = "value";
-        static::assertEquals($o, $this->createParser()->parse('{"key":"value"}'));
-        $o = new stdClass;
-        $o->key1 = "value1";
-        $o->key2 = "value2";
-        static::assertEquals($o, $this->createParser()->parse('{"key1": "value1", "key2": "value2"}'));
-    }
-
-    public function testArray(): void
-    {
-        static::assertSame([], $this->createParser()->parse('[]'));
-        static::assertSame([], $this->createParser()->parse('[ ]'));
-        static::assertSame(["value"], $this->createParser()->parse('["value"]'));
-        static::assertSame(["value", 3748], $this->createParser()->parse('["value", 3748]'));
-    }
-
-    private function createParser(): JSONParser
-    {
-        return new JSONParser(new ParserFactory(), true);
+        $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(JSONRules::class)));
+        $rules   = new JSONRules($parser);
+        $scanner = new JSONScanner($parser);
+        $scanner->scan($json);
+        $scanner->endOfInput();
+        static::assertSame($expected, $rules->solution);
     }
 }

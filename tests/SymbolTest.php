@@ -16,7 +16,6 @@ use stdClass;
 /**
  * @covers \davekok\lalr1\Symbol::__construct
  * @covers \davekok\lalr1\Symbol::__toString
- * @covers \davekok\lalr1\SymbolType::label
  */
 class SymbolTest extends TestCase
 {

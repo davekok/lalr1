@@ -43,11 +43,19 @@ class RulesClass
     }
 }
 
+/**
+ * @covers \davekok\lalr1\RulesFactory::createRules
+ * @uses \davekok\lalr1\attributes\Rule
+ * @uses \davekok\lalr1\attributes\Symbol
+ * @uses \davekok\lalr1\attributes\Symbols
+ * @uses \davekok\lalr1\Key
+ * @uses \davekok\lalr1\Rule
+ * @uses \davekok\lalr1\Rules
+ * @uses \davekok\lalr1\Symbol
+ * @uses \davekok\lalr1\SymbolType
+ */
 class RulesFactoryTest extends TestCase
 {
-    /**
-     * @covers \davekok\lalr1\RulesFactoryTest::createRules
-     */
     public function testRules(): void
     {
         $factory = new RulesFactory();
