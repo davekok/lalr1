@@ -59,7 +59,7 @@ class ExpressionTest extends TestCase
     {
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
-        $buffer  = new ScanBuffer()
+        $buffer  = new ScanBuffer();
         $scanner = new ExpressionScanner($parser);
         $scanner->scan($buffer->add($expression));
         $scanner->endOfInput($buffer);
@@ -86,8 +86,7 @@ class ExpressionTest extends TestCase
         $scanner = new ExpressionScanner($parser);
         $scanner->scan($buffer->add("3 +"));
         $scanner->reset();
-        $buffer->add($buffer->add("5 + 2"));
-        $scanner->scan($buffer);
+        $scanner->scan($buffer->add("5 + 2"));
         $scanner->endOfInput($buffer);
         static::assertSame(7, $rules->solution);
     }
