@@ -38,6 +38,7 @@ case "${1:-}" in
 
     test)
         shift
+        mkdir -p ./docs/coverage
         podman run -it --rm -w /app \
             -v ./src:/app/src:ro \
             -v ./tests:/app/tests:ro \
