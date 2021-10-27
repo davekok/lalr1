@@ -11,12 +11,14 @@ class Rules
     private readonly array $symbols;
     private readonly array $rules;
     private readonly ReflectionMethod $solutionMethod;
+    private readonly ReflectionMethod|null $nothingMethod;
 
-    public function __construct(array $symbols, array $rules, ReflectionMethod $solutionMethod)
+    public function __construct(array $symbols, array $rules, ReflectionMethod $solutionMethod, ReflectionMethod|null $nothingMethod)
     {
         $this->symbols        = $symbols;
         $this->rules          = $rules;
         $this->solutionMethod = $solutionMethod;
+        $this->nothingMethod  = $nothingMethod;
     }
 
     public function getSymbol(string $key): ?Symbol
@@ -32,5 +34,13 @@ class Rules
     public function solution(object $rulesObject, mixed $value): void
     {
         $this->solutionMethod->invoke($rulesObject, $value);
+    }
+
+    public function nothing(object $rulesObject): void
+    {
+        if ($this->nothingMethod === null) {
+            throw new ParserException("No tokens have been passed in.");
+        }
+        $this->nothingMethod->invoke($rulesObject);
     }
 }

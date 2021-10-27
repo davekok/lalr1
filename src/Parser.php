@@ -54,6 +54,7 @@ class Parser
 
     public function pushToken(string $name, mixed $value = null): void
     {
+        // $this->logger->debug("push token $name with $value");
         $token = $this->createToken($name, $value);
         if ($token->symbol->type === SymbolType::BRANCH) {
             throw new ParserException("You should not push branch symbols.");
@@ -64,9 +65,10 @@ class Parser
 
     public function endOfTokens(): void
     {
-        $this->logger->debug("endOfTokens: length: {$this->tokens->count()}");
+        // $this->logger->debug("endOfTokens: length: {$this->tokens->count()}");
 
         if ($this->tokens->count() == 0) {
+            $this->rules->nothing($this->rulesObject);
             return;
         }
 
@@ -83,7 +85,7 @@ class Parser
             throw new NoSolutionParserException("Token is not root.");
         }
 
-        $this->logger->debug("endOfTokens: solution: $token");
+        // $this->logger->debug("endOfTokens: solution: $token");
 
         $this->rules->solution($this->rulesObject, $token->value);
     }
@@ -91,7 +93,7 @@ class Parser
     private function reduce(bool $endOfTokens): void
     {
         for (;;) {
-            $this->logger->debug("reduce: {$this->tokens}");
+            // $this->logger->debug("reduce: {$this->tokens}");
 
             $count = $this->tokens->count();
 
@@ -128,7 +130,7 @@ class Parser
                 // Replace matched tokens with new token
                 $this->tokens->replace($offset, $count - $offset, $newToken);
 
-                $this->logger->debug("reduce by rule $key");
+                // $this->logger->debug("reduce by rule $key");
 
                 // Check for more rules with new state.
                 continue 2;

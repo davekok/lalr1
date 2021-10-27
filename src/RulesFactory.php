@@ -8,6 +8,7 @@ use davekok\lalr1\attributes\Rule as RuleAttribute;
 use davekok\lalr1\attributes\Symbol as SymbolAttribute;
 use davekok\lalr1\attributes\Symbols as SymbolsAttribute;
 use davekok\lalr1\attributes\Solution as SolutionAttribute;
+use davekok\lalr1\attributes\Nothing as NothingAttribute;
 use ReflectionClass;
 
 class RulesFactory
@@ -33,6 +34,7 @@ class RulesFactory
         }
 
         $solutionMethod = null;
+        $nothingMethod = null;
         $rules = [];
         foreach ($rulesClass->getMethods() as $method) {
             foreach ($method->getAttributes() as $attr) {
@@ -42,6 +44,13 @@ class RulesFactory
                             throw new RulesException("There can be only one solution method.");
                         }
                         $solutionMethod = $method;
+                        break;
+
+                    case $attr->getName() === NothingAttribute::class:
+                        if ($nothingMethod !== null) {
+                            throw new RulesException("There can be only one nothing method.");
+                        }
+                        $nothingMethod = $method;
                         break;
 
                     case $attr->getName() === RuleAttribute::class:
@@ -69,6 +78,6 @@ class RulesFactory
             throw new RulesException("Solution method is missing.");
         }
 
-        return new Rules($symbols, $rules, $solutionMethod);
+        return new Rules($symbols, $rules, $solutionMethod, $nothingMethod);
     }
 }
