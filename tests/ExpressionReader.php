@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace davekok\lalr1\tests;
 
 use davekok\lalr1\{Parser,Token};
-use davekok\stream\{ScanBuffer,Scanner,ScanException};
+use davekok\stream\{ReaderBuffer,Reader,ReaderException};
 use Exception;
 
 enum ExpressionState
@@ -15,7 +15,7 @@ enum ExpressionState
     case YYFLOAT;
 }
 
-class ExpressionScanner implements Scanner
+class ExpressionReader implements Reader
 {
     private ExpressionState $state = ExpressionState::YYSTART;
 
@@ -29,7 +29,7 @@ class ExpressionScanner implements Scanner
         $this->parser->reset();
     }
 
-    public function endOfInput(ScanBuffer $buffer): void
+    public function endOfInput(ReaderBuffer $buffer): void
     {
         switch ($this->state) {
             case ExpressionState::YYINT:
@@ -42,7 +42,7 @@ class ExpressionScanner implements Scanner
         $this->parser->endOfTokens();
     }
 
-    public function scan(ScanBuffer $buffer): void
+    public function read(ReaderBuffer $buffer): void
     {
         while ($buffer->valid()) {
             switch ($this->state) {
@@ -84,7 +84,7 @@ class ExpressionScanner implements Scanner
                             $this->parser->pushToken("\\");
                             continue 3;
                         default:
-                            throw new ScanException("Scan error");
+                            throw new ReaderException("Scan error");
                     }
                 case ExpressionState::YYINT:
                     switch ($buffer->peek()) {

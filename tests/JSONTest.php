@@ -10,7 +10,7 @@ use davekok\lalr1\Rule;
 use davekok\lalr1\RulesFactory;
 use davekok\lalr1\Symbol;
 use davekok\lalr1\Symbols;
-use davekok\stream\ScanBuffer;
+use davekok\stream\ReaderBuffer;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -61,9 +61,9 @@ class JSONTest extends TestCase
     {
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(JSONRules::class)));
         $rules   = new JSONRules($parser);
-        $scanner = new JSONScanner($parser);
-        $buffer  = new ScanBuffer($json);
-        $scanner->scan($buffer);
+        $scanner = new JSONReader($parser);
+        $buffer  = new ReaderBuffer($json);
+        $scanner->read($buffer);
         $scanner->endOfInput($buffer);
         static::assertSame($expected, $rules->solution);
     }
