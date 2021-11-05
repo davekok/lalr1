@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace davekok\lalr1\tests;
 
 use davekok\lalr1\{Parser,Token};
-use davekok\stream\{ReaderBuffer,Reader,ReaderException};
+use davekok\stream\{ReaderBuffer,ReaderException};
 use Exception;
 
 enum ExpressionState
@@ -15,7 +15,7 @@ enum ExpressionState
     case YYFLOAT;
 }
 
-class ExpressionReader implements Reader
+class ExpressionReader
 {
     private ExpressionState $state = ExpressionState::YYSTART;
 
@@ -27,19 +27,6 @@ class ExpressionReader implements Reader
     {
         $this->state = ExpressionState::YYSTART;
         $this->parser->reset();
-    }
-
-    public function endOfInput(ReaderBuffer $buffer): void
-    {
-        switch ($this->state) {
-            case ExpressionState::YYINT:
-                $this->parser->pushToken("number", $buffer->getInt());
-                break;
-            case ExpressionState::YYFLOAT:
-                $this->parser->pushToken("number", $buffer->getFloat());
-                break;
-        }
-        $this->parser->endOfTokens();
     }
 
     public function read(ReaderBuffer $buffer): void
@@ -111,6 +98,18 @@ class ExpressionReader implements Reader
                             continue 3;
                     }
             }
+        }
+        if ($buffer->isLastChunk() === true) {
+            switch ($this->state) {
+                case ExpressionState::YYINT:
+                    $this->parser->pushToken("number", $buffer->getInt());
+                    break;
+                case ExpressionState::YYFLOAT:
+                    $this->parser->pushToken("number", $buffer->getFloat());
+                    break;
+            }
+            $this->parser->endOfTokens();
+            return;
         }
     }
 }

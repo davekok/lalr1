@@ -60,9 +60,8 @@ class ExpressionTest extends TestCase
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
         $buffer  = new ReaderBuffer();
-        $scanner = new ExpressionReader($parser);
-        $scanner->read($buffer->add($expression));
-        $scanner->endOfInput($buffer);
+        $reader  = new ExpressionReader($parser);
+        $reader->read($buffer->add($expression)->end());
         static::assertSame($expected, $rules->solution);
     }
 
@@ -71,10 +70,9 @@ class ExpressionTest extends TestCase
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
         $buffer  = new ReaderBuffer();
-        $scanner = new ExpressionReader($parser);
-        $scanner->read($buffer->add("3 +"));
-        $scanner->read($buffer->add("5 + 2"));
-        $scanner->endOfInput($buffer);
+        $reader  = new ExpressionReader($parser);
+        $reader->read($buffer->add("3 +"));
+        $reader->read($buffer->add("5 + 2")->end());
         static::assertSame(10, $rules->solution);
     }
 
@@ -83,11 +81,10 @@ class ExpressionTest extends TestCase
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
         $buffer  = new ReaderBuffer();
-        $scanner = new ExpressionReader($parser);
-        $scanner->read($buffer->add("3 +"));
-        $scanner->reset();
-        $scanner->read($buffer->add("5 + 2"));
-        $scanner->endOfInput($buffer);
+        $reader  = new ExpressionReader($parser);
+        $reader->read($buffer->add("3 +"));
+        $reader->reset();
+        $reader->read($buffer->add("5 + 2")->end());
         static::assertSame(7, $rules->solution);
     }
 }

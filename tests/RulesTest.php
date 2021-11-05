@@ -52,7 +52,7 @@ class RulesTest extends TestCase
         static::assertSame('[0] object', (string)$expected1);
         $expected2 = new Rule($key2, "opening-brace closing-brace", 0, $reflection->getMethod("rule2"));
         static::assertSame('[0] opening-brace closing-brace', (string)$expected2);
-        $rules = new Rules($symbols, [$key1 => $expected1, $key2 => $expected2], $reflection->getMethod("solution"));
+        $rules = new Rules($symbols, [$key1 => $expected1, $key2 => $expected2], $reflection->getMethod("solution"), null);
         static::assertSame($value, $rules->getSymbol("value"));
         static::assertSame($object, $rules->getSymbol("object"));
         static::assertSame($openingBrace, $rules->getSymbol("opening-brace"));
