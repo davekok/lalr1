@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace davekok\lalr1\tests;
 
 use davekok\lalr1\{Parser,Token};
-use davekok\stream\{ReaderBuffer,ReaderException};
+use davekok\stream\{Reader,ReaderBuffer,ReaderException};
 use Exception;
 
 enum ExpressionState
@@ -15,7 +15,7 @@ enum ExpressionState
     case YYFLOAT;
 }
 
-class ExpressionReader
+class ExpressionReader implements Reader
 {
     private ExpressionState $state = ExpressionState::YYSTART;
 

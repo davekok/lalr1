@@ -24,12 +24,12 @@ class Parser
 {
     public readonly object $rulesObject;
     public readonly Rules $rules;
-    public readonly Logger $logger;
+    public readonly Logger $log;
     private readonly Tokens $tokens;
 
-    public function __construct(Rules $rules, Logger $logger = new NullLogger()) {
+    public function __construct(Rules $rules, Logger $log = new NullLogger()) {
         $this->rules  = $rules;
-        $this->logger = $logger;
+        $this->log = $log;
         $this->tokens = new Tokens();
     }
 
@@ -54,7 +54,7 @@ class Parser
 
     public function pushToken(string $name, mixed $value = null): void
     {
-        // $this->logger->debug("push token $name with $value");
+        // $this->log->debug("push token $name with $value");
         $token = $this->createToken($name, $value);
         if ($token->symbol->type === SymbolType::BRANCH) {
             throw new ParserException("You should not push branch symbols.");
@@ -65,27 +65,29 @@ class Parser
 
     public function endOfTokens(): void
     {
-        // $this->logger->debug("endOfTokens: length: {$this->tokens->count()}");
+        // $this->log->debug("endOfTokens: length: {$this->tokens->count()}");
 
         if ($this->tokens->count() == 0) {
-            $this->rules->nothing($this->rulesObject);
+            $this->rules->solution($this->rulesObject, new EmptySolutionParserException());
             return;
         }
 
         $this->reduce(true);
 
         if ($this->tokens->count() != 1) {
-            throw new NoSolutionParserException("Token count is not 1 but {$this->tokens->count()}");
+            $this->rules->solution($this->rulesObject, new NoSolutionParserException("Token count is not 1 but {$this->tokens->count()}"));
+            return;
         }
 
         $token = $this->tokens->pop();
 
         // If token has the root symbol, we have a solution.
         if ($token->symbol->type != SymbolType::ROOT) {
-            throw new NoSolutionParserException("Token is not root.");
+            $this->rules->solution($this->rulesObject, new NoSolutionParserException("Token is not root."));
+            return;
         }
 
-        // $this->logger->debug("endOfTokens: solution: $token");
+        // $this->log->debug("endOfTokens: solution: $token");
 
         $this->rules->solution($this->rulesObject, $token->value);
     }
@@ -93,7 +95,7 @@ class Parser
     private function reduce(bool $endOfTokens): void
     {
         for (;;) {
-            // $this->logger->debug("reduce: {$this->tokens}");
+            // $this->log->debug("reduce: {$this->tokens}");
 
             $count = $this->tokens->count();
 
@@ -130,7 +132,7 @@ class Parser
                 // Replace matched tokens with new token
                 $this->tokens->replace($offset, $count - $offset, $newToken);
 
-                // $this->logger->debug("reduce by rule $key");
+                // $this->log->debug("reduce by rule $key");
 
                 // Check for more rules with new state.
                 continue 2;

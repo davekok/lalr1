@@ -12,12 +12,16 @@ use Attribute;
  * Example:
  *
  *     use davekok\larl1\attributes\Solution;
+ *     use Throwable;
  *
  *     class MyRules
  *     {
  *         #[Solution]
  *         public function solution(mixed $value): void
  *         {
+ *             if ($value instanceof Throwable) {
+ *                 // handle error
+ *             }
  *             // do something smart
  *         }
  *     }

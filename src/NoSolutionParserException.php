@@ -8,8 +8,8 @@ use Exception;
 
 class NoSolutionParserException extends ParserException
 {
-    public function __construct()
+    public function __construct(string $message)
     {
-        parent::__construct("End of tokens reached, but no valid solution.");
+        parent::__construct("End of tokens reached, but no valid solution: " . $message);
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace davekok\lalr1\tests;
 
 use davekok\lalr1\{Parser,Rules,RulesFactory};
-use davekok\stream\ReaderBuffer;
+use davekok\stream\StreamKernelReaderBuffer;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -59,7 +59,7 @@ class ExpressionTest extends TestCase
     {
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
-        $buffer  = new ReaderBuffer();
+        $buffer  = new StreamKernelReaderBuffer();
         $reader  = new ExpressionReader($parser);
         $reader->read($buffer->add($expression)->end());
         static::assertSame($expected, $rules->solution);
@@ -69,7 +69,7 @@ class ExpressionTest extends TestCase
     {
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
-        $buffer  = new ReaderBuffer();
+        $buffer  = new StreamKernelReaderBuffer();
         $reader  = new ExpressionReader($parser);
         $reader->read($buffer->add("3 +"));
         $reader->read($buffer->add("5 + 2")->end());
@@ -80,7 +80,7 @@ class ExpressionTest extends TestCase
     {
         $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
         $rules   = new ExpressionRules($parser);
-        $buffer  = new ReaderBuffer();
+        $buffer  = new StreamKernelReaderBuffer();
         $reader  = new ExpressionReader($parser);
         $reader->read($buffer->add("3 +"));
         $reader->reset();
