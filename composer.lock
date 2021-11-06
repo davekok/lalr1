@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/davekok/stream.git",
-                "reference": "aa9b5452831f7026aca962c99530f38db84b12ce"
+                "reference": "29e375a4294d25bf0b9d174750c27731473240e9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/davekok/stream/zipball/aa9b5452831f7026aca962c99530f38db84b12ce",
-                "reference": "aa9b5452831f7026aca962c99530f38db84b12ce",
+                "url": "https://api.github.com/repos/davekok/stream/zipball/29e375a4294d25bf0b9d174750c27731473240e9",
+                "reference": "29e375a4294d25bf0b9d174750c27731473240e9",
                 "shasum": ""
             },
             "require": {
@@ -49,7 +49,7 @@
                 "source": "https://github.com/davekok/stream/tree/main",
                 "issues": "https://github.com/davekok/stream/issues"
             },
-            "time": "2021-10-22T12:23:16+00:00"
+            "time": "2021-11-06T08:25:50+00:00"
         },
         {
             "name": "psr/log",
@@ -232,16 +232,16 @@
         },
         {
             "name": "nikic/php-parser",
-            "version": "v4.13.0",
+            "version": "v4.13.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nikic/PHP-Parser.git",
-                "reference": "50953a2691a922aa1769461637869a0a2faa3f53"
+                "reference": "63a79e8daa781cac14e5195e63ed8ae231dd10fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/50953a2691a922aa1769461637869a0a2faa3f53",
-                "reference": "50953a2691a922aa1769461637869a0a2faa3f53",
+                "url": "https://api.github.com/repos/nikic/PHP-Parser/zipball/63a79e8daa781cac14e5195e63ed8ae231dd10fd",
+                "reference": "63a79e8daa781cac14e5195e63ed8ae231dd10fd",
                 "shasum": ""
             },
             "require": {
@@ -282,9 +282,9 @@
             ],
             "support": {
                 "issues": "https://github.com/nikic/PHP-Parser/issues",
-                "source": "https://github.com/nikic/PHP-Parser/tree/v4.13.0"
+                "source": "https://github.com/nikic/PHP-Parser/tree/v4.13.1"
             },
-            "time": "2021-09-20T12:20:58+00:00"
+            "time": "2021-11-03T20:52:16+00:00"
         },
         {
             "name": "phar-io/manifest",
@@ -630,12 +630,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/sebastianbergmann/php-code-coverage.git",
-                "reference": "3ca2f862e11bb02cb7a97185afed902522e2edbb"
+                "reference": "9f37d464d6bc3cf1b379f785b66a2ce77bf523a6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/3ca2f862e11bb02cb7a97185afed902522e2edbb",
-                "reference": "3ca2f862e11bb02cb7a97185afed902522e2edbb",
+                "url": "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/9f37d464d6bc3cf1b379f785b66a2ce77bf523a6",
+                "reference": "9f37d464d6bc3cf1b379f785b66a2ce77bf523a6",
                 "shasum": ""
             },
             "require": {
@@ -699,7 +699,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2021-09-25T04:46:46+00:00"
+            "time": "2021-11-06T06:50:45+00:00"
         },
         {
             "name": "phpunit/php-file-iterator",
@@ -1898,7 +1898,6 @@
                     "type": "github"
                 }
             ],
-            "abandoned": true,
             "time": "2020-09-28T06:45:17+00:00"
         },
         {
