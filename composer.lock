@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/davekok/stream.git",
-                "reference": "8dd11611af09cd68c6663058c549225b398a8f6f"
+                "reference": "839333ddcfdcb01bd6b00eb6c29b0b4d95add33f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/davekok/stream/zipball/8dd11611af09cd68c6663058c549225b398a8f6f",
-                "reference": "8dd11611af09cd68c6663058c549225b398a8f6f",
+                "url": "https://api.github.com/repos/davekok/stream/zipball/839333ddcfdcb01bd6b00eb6c29b0b4d95add33f",
+                "reference": "839333ddcfdcb01bd6b00eb6c29b0b4d95add33f",
                 "shasum": ""
             },
             "require": {
@@ -49,7 +49,7 @@
                 "source": "https://github.com/davekok/stream/tree/main",
                 "issues": "https://github.com/davekok/stream/issues"
             },
-            "time": "2021-11-07T07:33:42+00:00"
+            "time": "2021-11-07T14:41:44+00:00"
         },
         {
             "name": "psr/log",
