@@ -34,7 +34,7 @@ class ExpressionReader implements Reader
         while ($buffer->valid()) {
             switch ($this->state) {
                 case ExpressionState::YYSTART:
-                    switch ($buffer->peek()) {
+                    switch ($buffer->current()) {
                         case 0x09:case 0x0A:case 0x0D:case 0x20:
                             $buffer->mark()->next();
                             continue 3;
@@ -74,7 +74,7 @@ class ExpressionReader implements Reader
                             throw new ReaderException("Scan error");
                     }
                 case ExpressionState::YYINT:
-                    switch ($buffer->peek()) {
+                    switch ($buffer->current()) {
                         case 0x2E:
                             $buffer->next();
                             $this->state = ExpressionState::YYFLOAT;
@@ -88,7 +88,7 @@ class ExpressionReader implements Reader
                             continue 3;
                     }
                 case ExpressionState::YYFLOAT:
-                    switch ($buffer->peek()) {
+                    switch ($buffer->current()) {
                         case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
                             $buffer->next();
                             continue 3;
