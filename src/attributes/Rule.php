@@ -35,12 +35,8 @@ use Attribute;
 #[Attribute(Attribute::TARGET_METHOD)]
 class Rule
 {
-    public readonly string $text;
-    public readonly int $precedence;
-
-    public function __construct(string $text, int $precedence = 0)
-    {
-        $this->text = $text;
-        $this->precedence = $precedence;
-    }
+    public function __construct(
+        public readonly string $text,
+        public readonly int $precedence = 0,
+    ) {}
 }

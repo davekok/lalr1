@@ -8,18 +8,12 @@ use ReflectionMethod;
 
 class Rules
 {
-    private readonly array $symbols;
-    private readonly array $rules;
-    private readonly ReflectionMethod $solutionMethod;
-    private readonly ReflectionMethod|null $nothingMethod;
-
-    public function __construct(array $symbols, array $rules, ReflectionMethod $solutionMethod, ReflectionMethod|null $nothingMethod)
-    {
-        $this->symbols        = $symbols;
-        $this->rules          = $rules;
-        $this->solutionMethod = $solutionMethod;
-        $this->nothingMethod  = $nothingMethod;
-    }
+    public function __construct(
+        private readonly array $symbols,
+        private readonly array $rules,
+        private readonly ReflectionMethod $solutionMethod,
+        private readonly ReflectionMethod|null $nothingMethod = null,
+    ) {}
 
     public function getSymbol(string $key): ?Symbol
     {

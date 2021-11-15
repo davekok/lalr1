@@ -8,7 +8,9 @@ use Exception;
 
 class Tokens
 {
-    private array $tokens = [];
+    public function __construct(
+        private array $tokens = [],
+    ) {}
 
     public function reset(): void
     {

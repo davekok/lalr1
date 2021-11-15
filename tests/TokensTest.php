@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * @coversDefaultClass \davekok\lalr1\Tokens
+ * @covers ::__construct
  * @covers \davekok\lalr1\Token::__construct
  * @uses \davekok\lalr1\SymbolType
  * @uses \davekok\lalr1\Symbol

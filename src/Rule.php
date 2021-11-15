@@ -8,18 +8,12 @@ use ReflectionMethod;
 
 class Rule
 {
-    public readonly string $key;
-    public readonly string $text;
-    public readonly int $precedence;
-    public readonly ReflectionMethod $reduceMethod;
-
-    public function __construct(string $key, string $text, int $precedence, ReflectionMethod $reduceMethod)
-    {
-        $this->key = $key;
-        $this->text = $text;
-        $this->precedence = $precedence;
-        $this->reduceMethod = $reduceMethod;
-    }
+    public function __construct(
+        public readonly string $key,
+        public readonly string $text,
+        public readonly int $precedence,
+        public readonly ReflectionMethod $reduceMethod,
+    ) {}
 
     public function reduce(object $rulesObject, array $tokens): Token
     {

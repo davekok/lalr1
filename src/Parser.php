@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace davekok\lalr1;
 
-use Psr\Log\LoggerInterface as Logger;
-use Psr\Log\NullLogger;
+// use davekok\stream\Activity;
 
 /**
  * This class implements the Look Ahead, Left to right, Right most derivation algorithm.
@@ -23,15 +22,12 @@ use Psr\Log\NullLogger;
 class Parser
 {
     public readonly object $rulesObject;
-    public readonly Rules $rules;
-    public readonly Logger $log;
-    private readonly Tokens $tokens;
 
-    public function __construct(Rules $rules, Logger $log = new NullLogger()) {
-        $this->rules  = $rules;
-        $this->log = $log;
-        $this->tokens = new Tokens();
-    }
+    public function __construct(
+        public readonly Rules $rules,
+        // public readonly Activity $activity,
+        private readonly Tokens $tokens = new Tokens(),
+    ) {}
 
     public function setRulesObject(object $rulesObject): void
     {
@@ -54,7 +50,7 @@ class Parser
 
     public function pushToken(string $name, mixed $value = null): void
     {
-        // $this->log->debug("push token $name with $value");
+        // $this->activity->addDebug("push token $name with $value");
         $token = $this->createToken($name, $value);
         if ($token->symbol->type === SymbolType::BRANCH) {
             throw new ParserException("You should not push branch symbols.");
@@ -65,7 +61,7 @@ class Parser
 
     public function endOfTokens(): void
     {
-        // $this->log->debug("endOfTokens: length: {$this->tokens->count()}");
+        // $this->activity->addDebug("endOfTokens: length: {$this->tokens->count()}");
 
         if ($this->tokens->count() == 0) {
             $this->rules->solution($this->rulesObject, new EmptySolutionParserException());
@@ -87,7 +83,7 @@ class Parser
             return;
         }
 
-        // $this->log->debug("endOfTokens: solution: $token");
+        // $this->activity->addDebug("endOfTokens: solution: $token");
 
         $this->rules->solution($this->rulesObject, $token->value);
     }
@@ -95,7 +91,7 @@ class Parser
     private function reduce(bool $endOfTokens): void
     {
         for (;;) {
-            // $this->log->debug("reduce: {$this->tokens}");
+            // $this->activity->addDebug("reduce: {$this->tokens}");
 
             $count = $this->tokens->count();
 
@@ -132,7 +128,7 @@ class Parser
                 // Replace matched tokens with new token
                 $this->tokens->replace($offset, $count - $offset, $newToken);
 
-                // $this->log->debug("reduce by rule $key");
+                // $this->activity->addDebug("reduce by rule $key");
 
                 // Check for more rules with new state.
                 continue 2;

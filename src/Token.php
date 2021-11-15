@@ -6,14 +6,10 @@ namespace davekok\lalr1;
 
 class Token
 {
-    public readonly Symbol $symbol;
-    public mixed $value;
-
-    public function __construct(Symbol $symbol, mixed $value = null)
-    {
-        $this->symbol = $symbol;
-        $this->value  = $value;
-    }
+    public function __construct(
+        public readonly Symbol $symbol,
+        public mixed $value = null,
+    ) {}
 
     public function __toString(): string
     {

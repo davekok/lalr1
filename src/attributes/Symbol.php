@@ -11,14 +11,9 @@ use davekok\lalr1\SymbolType;
  */
 class Symbol
 {
-    public readonly SymbolType $type;
-    public readonly string $name;
-    public readonly int $precedence;
-
-    public function __construct(SymbolType $type, string $name, int $precedence = 0)
-    {
-        $this->type = $type;
-        $this->name = $name;
-        $this->precedence = $precedence;
-    }
+    public function __construct(
+        public readonly SymbolType $type,
+        public readonly string $name,
+        public readonly int $precedence = 0
+    ) {}
 }
