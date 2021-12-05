@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace davekok\lalr1;
 
-// use davekok\stream\Activity;
-
 /**
  * This class implements the Look Ahead, Left to right, Right most derivation algorithm.
  *
@@ -21,17 +19,12 @@ namespace davekok\lalr1;
  */
 class Parser
 {
-    public readonly object $rulesObject;
-
     public function __construct(
-        public readonly Rules $rules,
-        // public readonly Activity $activity,
-        private readonly Tokens $tokens = new Tokens(),
-    ) {}
-
-    public function setRulesObject(object $rulesObject): void
-    {
-        $this->rulesObject = $rulesObject;
+        private readonly RulesBag $rulesBag,
+        private readonly Rules    $rules,
+        private readonly Tokens   $tokens = new Tokens,
+    ) {
+        $this->rules->setParser($this);
     }
 
     public function reset(): void
@@ -41,7 +34,7 @@ class Parser
 
     public function createToken(string $name, mixed $value): Token
     {
-        $symbol = $this->rules->getSymbol($name);
+        $symbol = $this->rulesBag->getSymbol($name);
         if ($symbol == null) {
             throw new ParserException("No such symbol '$name'.");
         }
@@ -50,7 +43,6 @@ class Parser
 
     public function pushToken(string $name, mixed $value = null): void
     {
-        // $this->activity->addDebug("push token $name with $value");
         $token = $this->createToken($name, $value);
         if ($token->symbol->type === SymbolType::BRANCH) {
             throw new ParserException("You should not push branch symbols.");
@@ -59,45 +51,36 @@ class Parser
         $this->reduce(false);
     }
 
-    public function endOfTokens(): void
+    public function endOfTokens(): mixed
     {
-        // $this->activity->addDebug("endOfTokens: length: {$this->tokens->count()}");
-
         if ($this->tokens->count() == 0) {
-            $this->rules->solution($this->rulesObject, new EmptySolutionParserException());
-            return;
+            return null;
         }
 
         $this->reduce(true);
 
         if ($this->tokens->count() != 1) {
-            $this->rules->solution($this->rulesObject, new NoSolutionParserException("Token count is not 1 but {$this->tokens->count()}"));
-            return;
+            return new NoSolutionParserException("Token count is not 1 but {$this->tokens->count()}");
         }
 
         $token = $this->tokens->pop();
 
         // If token has the root symbol, we have a solution.
         if ($token->symbol->type != SymbolType::ROOT) {
-            $this->rules->solution($this->rulesObject, new NoSolutionParserException("Token is not root."));
-            return;
+            return new NoSolutionParserException("Token is not root.");
         }
 
-        // $this->activity->addDebug("endOfTokens: solution: $token");
-
-        $this->rules->solution($this->rulesObject, $token->value);
+        return $token->value;
     }
 
     private function reduce(bool $endOfTokens): void
     {
         for (;;) {
-            // $this->activity->addDebug("reduce: {$this->tokens}");
-
             $count = $this->tokens->count();
 
             // Skip the lookahead token until the end has been reached.
             $lookAheadToken = null;
-            if ($endOfTokens == false) {
+            if ($endOfTokens === false) {
                 --$count;
                 $lookAheadToken = $this->tokens->last();
             }
@@ -110,7 +93,7 @@ class Parser
                     $key .= $this->tokens->get($o)->symbol->key;
                 }
 
-                $rule = $this->rules->getRule($key);
+                $rule = $this->rulesBag->getRule($key);
 
                 // Check if we have a rule for key.
                 if ($rule == null) {
@@ -123,12 +106,10 @@ class Parser
                 }
 
                 // Call the rule's reduce function.
-                $newToken = $rule->reduce($this->rulesObject, $this->tokens->rangeFrom($offset));
+                $newToken = $rule->reduce($this->rules, $this->tokens->rangeFrom($offset));
 
                 // Replace matched tokens with new token
                 $this->tokens->replace($offset, $count - $offset, $newToken);
-
-                // $this->activity->addDebug("reduce by rule $key");
 
                 // Check for more rules with new state.
                 continue 2;

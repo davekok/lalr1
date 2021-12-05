@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace davekok\lalr1\tests;
 
-use davekok\lalr1\{Parser,Rules,RulesFactory};
-use davekok\stream\StreamKernelReaderBuffer;
+use davekok\lalr1\{Parser,RulesBag,RulesBagFactory};
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -16,15 +15,13 @@ use ReflectionClass;
  * @covers \davekok\lalr1\Parser::pushToken
  * @covers \davekok\lalr1\Parser::reduce
  * @covers \davekok\lalr1\Parser::reset
- * @covers \davekok\lalr1\Parser::setRulesObject
  * @uses \davekok\lalr1\attributes\Rule
- * @uses \davekok\lalr1\attributes\Solution
  * @uses \davekok\lalr1\attributes\Symbol
  * @uses \davekok\lalr1\attributes\Symbols
  * @uses \davekok\lalr1\Key
  * @uses \davekok\lalr1\Rule
- * @uses \davekok\lalr1\Rules
- * @uses \davekok\lalr1\RulesFactory
+ * @uses \davekok\lalr1\RulesBag
+ * @uses \davekok\lalr1\RulesBagFactory
  * @uses \davekok\lalr1\Symbol
  * @uses \davekok\lalr1\Token
  * @uses \davekok\lalr1\Tokens
@@ -57,34 +54,12 @@ class ExpressionTest extends TestCase
      */
     public function testSimple(mixed $expected, string $expression): void
     {
-        $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
-        $rules   = new ExpressionRules($parser);
-        $buffer  = new StreamKernelReaderBuffer();
-        $reader  = new ExpressionReader($parser);
-        $reader->read($buffer->add($expression)->end());
-        static::assertSame($expected, $rules->solution);
-    }
-
-    public function testParts(): void
-    {
-        $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
-        $rules   = new ExpressionRules($parser);
-        $buffer  = new StreamKernelReaderBuffer();
-        $reader  = new ExpressionReader($parser);
-        $reader->read($buffer->add("3 +"));
-        $reader->read($buffer->add("5 + 2")->end());
-        static::assertSame(10, $rules->solution);
-    }
-
-    public function testReset(): void
-    {
-        $parser  = new Parser((new RulesFactory())->createRules(new ReflectionClass(ExpressionRules::class)));
-        $rules   = new ExpressionRules($parser);
-        $buffer  = new StreamKernelReaderBuffer();
-        $reader  = new ExpressionReader($parser);
-        $reader->read($buffer->add("3 +"));
-        $reader->reset();
-        $reader->read($buffer->add("5 + 2")->end());
-        static::assertSame(7, $rules->solution);
+        $reader = new ExpressionReader(
+            new Parser(
+                rulesBag: (new RulesBagFactory)->createRulesBag(new ReflectionClass(ExpressionRules::class)),
+                rules:    new ExpressionRules,
+            )
+        );
+        self::assertSame($expected, $reader->read($expression));
     }
 }

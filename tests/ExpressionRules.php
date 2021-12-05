@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace davekok\lalr1\tests;
 
-use davekok\lalr1\attributes\{Rule,Solution,Symbol,Symbols};
-use davekok\lalr1\{Parser,SymbolType,Token};
+use davekok\lalr1\attributes\{Rule,Symbol,Symbols};
+use davekok\lalr1\{Parser,Rules,SymbolType,Token};
 use Exception;
 use stdClass;
 
@@ -19,21 +19,13 @@ use stdClass;
     new Symbol(SymbolType::LEAF, "("),
     new Symbol(SymbolType::LEAF, ")"),
 )]
-class ExpressionRules
+class ExpressionRules implements Rules
 {
-    public readonly Parser $parser;
-    public mixed $solution;
+    private readonly Parser $parser;
 
-    public function __construct(Parser $parser)
+    public function setParser(Parser $parser): void
     {
         $this->parser = $parser;
-        $this->parser->setRulesObject($this);
-    }
-
-    #[Solution]
-    public function solution(mixed $value): void
-    {
-        $this->solution = $value;
     }
 
     #[Rule("number + number")]

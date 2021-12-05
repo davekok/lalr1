@@ -15,9 +15,9 @@ class Rule
         public readonly ReflectionMethod $reduceMethod,
     ) {}
 
-    public function reduce(object $rulesObject, array $tokens): Token
+    public function reduce(Rules $rules, array $tokens): Token
     {
-        return $this->reduceMethod->invoke($rulesObject, $tokens);
+        return $this->reduceMethod->invoke($rules, $tokens);
     }
 
     public function __toString(): string
