@@ -32,8 +32,8 @@ function volumes() {
                 VOLUMES+=("-v" "./docs/coverage:/app/docs/coverage:rw")
                 ;;
             dependencies)
-                if [ -d "../stream/src" ]; then
-                    VOLUMES+=("-v" "../stream/src:/app/vendor/davekok/stream/src:ro")
+                if [ -d "../kernel/src" ]; then
+                    VOLUMES+=("-v" "../kernel/src:/app/vendor/davekok/kernel/src:ro")
                 fi
                 ;;
         esac
