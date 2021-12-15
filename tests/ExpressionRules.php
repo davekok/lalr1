@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\attributes\{Rule,Symbol,Symbols};
-use davekok\lalr1\{Parser,Rules,SymbolType,Token};
+use davekok\parser\attributes\{Rule,Symbol,Symbols};
+use davekok\parser\{Parser,Rules,SymbolType,Token};
 use Exception;
 use stdClass;
 

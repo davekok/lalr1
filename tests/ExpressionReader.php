@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\{Parser,Token};
+use davekok\parser\{Parser,Token};
 use Exception;
 use Throwable;
 

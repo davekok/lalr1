@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\Key;
+use davekok\parser\Key;
 use Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \davekok\lalr1\Key
+ * @coversDefaultClass \davekok\parser\Key
  * @covers ::createKey
  */
 class KeyTest extends TestCase

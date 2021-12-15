@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1;
-
-use Exception;
+namespace davekok\parser;
 
 class NoSolutionParserException extends ParserException
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1;
+namespace davekok\parser;
 
 enum SymbolType: string
 {

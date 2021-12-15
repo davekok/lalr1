@@ -2,29 +2,29 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\{Parser,RulesBag,RulesBagFactory};
+use davekok\parser\{Parser,RulesBag,RulesBagFactory};
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
 /**
- * @covers \davekok\lalr1\Parser::__construct
- * @covers \davekok\lalr1\Parser::createToken
- * @covers \davekok\lalr1\Parser::endOfTokens
- * @covers \davekok\lalr1\Parser::pushToken
- * @covers \davekok\lalr1\Parser::reduce
- * @covers \davekok\lalr1\Parser::reset
- * @uses \davekok\lalr1\attributes\Rule
- * @uses \davekok\lalr1\attributes\Symbol
- * @uses \davekok\lalr1\attributes\Symbols
- * @uses \davekok\lalr1\Key
- * @uses \davekok\lalr1\Rule
- * @uses \davekok\lalr1\RulesBag
- * @uses \davekok\lalr1\RulesBagFactory
- * @uses \davekok\lalr1\Symbol
- * @uses \davekok\lalr1\Token
- * @uses \davekok\lalr1\Tokens
+ * @covers \davekok\parser\Parser::__construct
+ * @covers \davekok\parser\Parser::createToken
+ * @covers \davekok\parser\Parser::endOfTokens
+ * @covers \davekok\parser\Parser::pushToken
+ * @covers \davekok\parser\Parser::reduce
+ * @covers \davekok\parser\Parser::reset
+ * @uses \davekok\parser\attributes\Rule
+ * @uses \davekok\parser\attributes\Symbol
+ * @uses \davekok\parser\attributes\Symbols
+ * @uses \davekok\parser\Key
+ * @uses \davekok\parser\Rule
+ * @uses \davekok\parser\RulesBag
+ * @uses \davekok\parser\RulesBagFactory
+ * @uses \davekok\parser\Symbol
+ * @uses \davekok\parser\Token
+ * @uses \davekok\parser\Tokens
  */
 class ExpressionTest extends TestCase
 {

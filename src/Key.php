@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1;
-
-use Exception;
+namespace davekok\parser;
 
 /**
  * Convert integers into string.
@@ -20,7 +18,7 @@ class Key
         }
 
         if ($number < 0) {
-            throw new Exception("Negative numbers are not supported.");
+            throw new ParserException("Negative numbers are not supported.");
         }
 
         // The algorithm is based on UTF-8.
@@ -45,6 +43,6 @@ class Key
                 . chr($number & 0b00111111 | 0b10000000);
         }
 
-        throw new Exception("Numbers larger then 1,114,111 are not supported.");
+        throw new ParserException("Numbers larger then 1,114,111 are not supported.");
     }
 }

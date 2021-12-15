@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\Symbol;
-use davekok\lalr1\SymbolType;
-use davekok\lalr1\Token;
-use davekok\lalr1\Tokens;
+use davekok\parser\Symbol;
+use davekok\parser\SymbolType;
+use davekok\parser\Token;
+use davekok\parser\Tokens;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @coversDefaultClass \davekok\lalr1\Tokens
+ * @coversDefaultClass \davekok\parser\Tokens
  * @covers ::__construct
- * @covers \davekok\lalr1\Token::__construct
- * @uses \davekok\lalr1\SymbolType
- * @uses \davekok\lalr1\Symbol
+ * @covers \davekok\parser\Token::__construct
+ * @uses \davekok\parser\SymbolType
+ * @uses \davekok\parser\Symbol
  */
 class TokensTest extends TestCase
 {
@@ -25,7 +25,7 @@ class TokensTest extends TestCase
     }
 
     /**
-     * @covers \davekok\lalr1\Token::__toString
+     * @covers \davekok\parser\Token::__toString
      */
     public function testToken(): void
     {

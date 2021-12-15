@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\attributes;
+namespace davekok\parser\attributes;
 
 use Attribute;
 
@@ -11,8 +11,8 @@ use Attribute;
  *
  * Example:
  *
- *     use davekok\larl1\attributes\{Symbol,Symbols};
- *     use davekok\larl1\SymbolType;
+ *     use davekok\parser\attributes\{Symbol,Symbols};
+ *     use davekok\parser\SymbolType;
  *
  *     #[Symbols(
  *         new Symbol(SymbolType::ROOT, "rootSymbol"),

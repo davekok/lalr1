@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1;
+namespace davekok\parser;
 
-use davekok\lalr1\attributes\Rule as RuleAttribute;
-use davekok\lalr1\attributes\Symbol as SymbolAttribute;
-use davekok\lalr1\attributes\Symbols as SymbolsAttribute;
+use davekok\parser\attributes\Rule as RuleAttribute;
+use davekok\parser\attributes\Symbol as SymbolAttribute;
+use davekok\parser\attributes\Symbols as SymbolsAttribute;
 use ReflectionClass;
 
 class RulesBagFactory

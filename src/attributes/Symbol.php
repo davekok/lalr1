@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\attributes;
+namespace davekok\parser\attributes;
 
-use davekok\lalr1\SymbolType;
+use davekok\parser\SymbolType;
 
 /**
  * Create a Symbol used with the Symbols attribute.

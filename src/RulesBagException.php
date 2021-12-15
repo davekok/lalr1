@@ -2,11 +2,9 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1;
+namespace davekok\parser;
 
-use Exception;
-
-class RulesBagException extends Exception
+class RulesBagException extends ParserException
 {
     public function __construct(string $message)
     {

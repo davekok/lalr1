@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\Parser;
-use davekok\lalr1\Rules;
-use davekok\lalr1\RulesBagFactory;
-use davekok\lalr1\attributes\{Rule,Symbol,Symbols};
-use davekok\lalr1\SymbolType;
+use davekok\parser\Parser;
+use davekok\parser\Rules;
+use davekok\parser\RulesBagFactory;
+use davekok\parser\attributes\{Rule,Symbol,Symbols};
+use davekok\parser\SymbolType;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
@@ -43,15 +43,15 @@ class RulesClass implements Rules
 }
 
 /**
- * @covers \davekok\lalr1\RulesBagFactory::createRulesBag
- * @uses \davekok\lalr1\attributes\Rule
- * @uses \davekok\lalr1\attributes\Symbol
- * @uses \davekok\lalr1\attributes\Symbols
- * @uses \davekok\lalr1\Key
- * @uses \davekok\lalr1\Rule
- * @uses \davekok\lalr1\RulesBag
- * @uses \davekok\lalr1\Symbol
- * @uses \davekok\lalr1\SymbolType
+ * @covers \davekok\parser\RulesBagFactory::createRulesBag
+ * @uses \davekok\parser\attributes\Rule
+ * @uses \davekok\parser\attributes\Symbol
+ * @uses \davekok\parser\attributes\Symbols
+ * @uses \davekok\parser\Key
+ * @uses \davekok\parser\Rule
+ * @uses \davekok\parser\RulesBag
+ * @uses \davekok\parser\Symbol
+ * @uses \davekok\parser\SymbolType
  */
 class RulesBagFactoryTest extends TestCase
 {

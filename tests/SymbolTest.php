@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace davekok\lalr1\tests;
+namespace davekok\parser\tests;
 
-use davekok\lalr1\Key;
-use davekok\lalr1\Rule;
-use davekok\lalr1\Symbol;
-use davekok\lalr1\Symbols;
-use davekok\lalr1\SymbolType;
+use davekok\parser\Key;
+use davekok\parser\Rule;
+use davekok\parser\Symbol;
+use davekok\parser\Symbols;
+use davekok\parser\SymbolType;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use stdClass;
 
 /**
- * @covers \davekok\lalr1\Symbol::__construct
- * @covers \davekok\lalr1\Symbol::__toString
+ * @covers \davekok\parser\Symbol::__construct
+ * @covers \davekok\parser\Symbol::__toString
  */
 class SymbolTest extends TestCase
 {

@@ -1,6 +1,6 @@
 {
-    "name": "davekok/lalr1",
-    "description": "A Look Ahead, Left to right, Right most derivation algorithm implementation.",
+    "name": "davekok/parser",
+    "description": "A Look Ahead, Left to right, Right most derivation parser.",
     "type": "library",
     "license": "UNLICENSE",
     "authors": [
@@ -11,8 +11,8 @@
     ],
     "autoload": {
         "psr-4": {
-            "davekok\\lalr1\\": "src/",
-            "davekok\\lalr1\\tests\\": "tests/"
+            "davekok\\parser\\": "src/",
+            "davekok\\parser\\tests\\": "tests/"
         }
     },
     "require-dev": {
