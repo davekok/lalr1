@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace davekok\parser\tests;
 
 use davekok\parser\attributes\{Parser,Rule,Input,InputOutput};
-use davekok\parser\{ParserTrait,Token};
+use davekok\parser\ParserTrait;
 
 #[Parser(valueType: "int|float|null", lexar: true)]
 #[InputOutput("number", "n")]

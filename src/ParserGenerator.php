@@ -71,6 +71,15 @@ class ParserGenerator implements IteratorAggregate
             yield $this->lexar();
         }
         yield $this->stitcher();
+
+        if (isset($this->reflection->invalidate)) {
+            foreach ($this->reflection->invalidate as $invalidate) {
+                unlink($invalidate);
+                if (function_exists("opcache_invalidate")) {
+                    opcache_invalidate($invalidate, true);
+                }
+            }
+        }
     }
 
     public function type(): PhpFile

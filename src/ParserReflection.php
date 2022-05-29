@@ -27,15 +27,33 @@ class ParserReflection
     /** @var ParserReflectionRule[] */
     public readonly array $rules;
 
-    public function __construct(string|object $parser)
+    public readonly array $invalidate;
+
+    public function __construct(string $parser)
     {
-        $this->class = $parser instanceof ReflectionClass ? $parser : new ReflectionClass($parser);
+        spl_autoload_register($this->autoload(...));
+        $this->class = new ReflectionClass($parser);
+        spl_autoload_unregister($this->autoload(...));
         $parser = $this->parser();
         $this->name = $parser->name;
         $this->valueType = $parser->valueType;
         $this->lexar = $parser->lexar;
         $this->types = iterator_to_array($this->types());
         $this->rules = iterator_to_array($this->rules());
+    }
+
+    public function autoload(string $className): void
+    {
+        // Stitcher should be used in parser. However, it may not exist. Create temporary placeholder just in case.
+        if (str_ends_with($className, "Stitcher")) {
+            $path = strtr($className, "\\", "/");
+            $namespace = strtr(dirname($path), "/", "\\");
+            $shortName = basename($path);
+            $filename = sys_get_temp_dir() . "/$shortName.php";
+            $this->invalidate[] = $filename;
+            file_put_contents($filename, "<?php namespace $namespace; trait $shortName {}");
+            include($filename);
+        }
     }
 
     private function parser(): ParserAttribute
