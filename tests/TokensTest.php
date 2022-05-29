@@ -4,35 +4,20 @@ declare(strict_types=1);
 
 namespace davekok\parser\tests;
 
-use davekok\parser\Symbol;
+use PHPUnit\Framework\TestCase;
 use davekok\parser\SymbolType;
 use davekok\parser\Token;
 use davekok\parser\Tokens;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @coversDefaultClass \davekok\parser\Tokens
  * @covers ::__construct
- * @covers \davekok\parser\Token::__construct
- * @uses \davekok\parser\SymbolType
- * @uses \davekok\parser\Symbol
  */
 class TokensTest extends TestCase
 {
     public function createToken(): Token
     {
-        return new Token(new Symbol(SymbolType::LEAF, "\0", "symname", 0), "value");
-    }
-
-    /**
-     * @covers \davekok\parser\Token::__toString
-     */
-    public function testToken(): void
-    {
-        static::assertSame(
-            '{"symbol":{"type":"leaf","key":"\u0000","name":"symname","precedence":0},"value":"value"}',
-            (string)$this->createToken()
-        );
+        return new class() implements Token {};
     }
 
     /**
@@ -50,22 +35,6 @@ class TokensTest extends TestCase
         static::assertNotSame($token0, $tokens->get(1));
         static::assertSame($token1, $tokens->get(1));
         static::assertNotSame($token1, $tokens->get(0));
-    }
-
-    /**
-     * @covers ::push
-     * @covers ::reset
-     * @covers ::get
-     */
-    public function testReset(): void
-    {
-        $token0 = $this->createToken();
-        $token1 = $this->createToken();
-        $tokens = new Tokens();
-        $tokens->push($token0);
-        $tokens->reset();
-        $tokens->push($token1);
-        static::assertSame($token1, $tokens->get(0));
     }
 
     /**
@@ -171,21 +140,5 @@ class TokensTest extends TestCase
         static::assertSame(1, $tokens->count());
         $tokens->pop();
         static::assertSame(0, $tokens->count());
-    }
-
-    /**
-     * @covers ::push
-     * @covers ::count
-     * @covers ::__toString
-     */
-    public function testToString(): void
-    {
-        $token0 = $this->createToken();
-        $tokens = new Tokens();
-        $tokens->push($token0);
-        static::assertSame(
-            '{"count":1,"tokens":[{"symbol":{"type":"leaf","key":"\u0000","name":"symname","precedence":0},"value":"value"}]}',
-            (string)$tokens
-        );
     }
 }

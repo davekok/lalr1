@@ -3,100 +3,97 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-CONTAINER_REGISTRY="ghcr.io"
-SELF="$(readlink -f "$0")"
-DIR="$(dirname "$SELF")"
-ACCOUNT="$(basename "$(dirname "$DIR")")"
-PROJECT="$(basename "$DIR")"
-ID="$CONTAINER_REGISTRY/$ACCOUNT/$PROJECT"
+if which podman >/dev/null; then
+    CONMAN="$(which podman)"
+    if which buildah >/dev/null; then
+        BUILDCON=("$(which buildah)" bud)
+    fi
+elif which docker >/dev/null; then
+    CONMAN="$(which docker)"
+    BUILDCON=("$CONMAN" build)
+fi
 
-cd "$DIR"
+CONREG="dkcr.nl"
+SELF="$(realpath "${BASH_SOURCE[${#BASH_SOURCE[@]} - 1]}")"
+DIR="$(dirname "$SELF")"
+VENDOR="$(basename "$(dirname "$DIR")")"
+PROJECT="$(basename "$DIR")"
+IMAGE="$CONREG/$VENDOR/$PROJECT"
 
 function volumes() {
-    VOLUMES=()
+    VOLUMES=(-w "/opt/$VENDOR/$PROJECT")
     for volume in "$@"
     do
         case "$volume" in
             src)
-                VOLUMES+=("-v" "./src:/app/src:ro")
+                VOLUMES+=("-v" "$DIR/src:/opt/$VENDOR/$PROJECT/src:ro")
                 ;;
             test)
-                mkdir -p "./tests"
-                VOLUMES+=("-v" "./tests:/app/tests:ro")
+                VOLUMES+=("-v" "$DIR/tests:/opt/$VENDOR/$PROJECT/tests:rw")
                 ;;
             phpunit)
-                VOLUMES+=("-v" "./phpunit.xml:/app/phpunit.xml:ro")
+                VOLUMES+=("-v" "$DIR/phpunit.xml:/opt/$VENDOR/$PROJECT/phpunit.xml:ro")
                 ;;
             coverage)
-                mkdir -p "./docs/coverage"
-                VOLUMES+=("-v" "./docs/coverage:/app/docs/coverage:rw")
+                mkdir -p "$DIR/docs/coverage"
+                VOLUMES+=("-v" "$DIR/docs/coverage:/opt/$VENDOR/$PROJECT/docs/coverage:rw")
+                VOLUMES+=("-v" "$DIR/coverage.php:/opt/$VENDOR/$PROJECT/coverage.php:ro")
                 ;;
-            dependencies)
+            vendor)
+                if [ ! -d "$DIR/vendor" ]; then
+                    $SELF install
+                fi
+                VOLUMES+=("-v" "$DIR/vendor:/opt/$VENDOR/$PROJECT/vendor:rw")
                 ;;
         esac
     done
 }
 
+if ! "$CONMAN" images | grep -q "$IMAGE"; then
+    "${BUILDCON[@]}" -t $IMAGE -f Containerfile .
+fi
+
 case "${1:-}" in
-    login)
-        podman login "$CONTAINER_REGISTRY"
-        ;;
-
     build)
-        if [ ! -f "composer.lock" ]
-        then
-            exec "$SELF" update
-        fi
-
-        case "${2:-dev}" in
-            dev)
-                buildah bud -t "$ID:dev" "dev.containerfile"
-                ;;
-            *)
-                buildah bud -t "$ID:${2}" "release.containerfile"
-                ;;
-        esac
+        "${BUILDCON[@]}" -t $IMAGE -f Containerfile .
         ;;
 
-    update | require)
-        CMD="$1"
-        shift
-        podman run -it --rm -v ./:/app/ composer composer "$CMD" --no-install $*
-        exec "$SELF" build
-        ;;
-
-    publish)
-        podman push "$ID:${2:-latest}"
+    update | require | install)
+        "$CONMAN" run -it --rm -v "$DIR:/app" composer composer $*
         ;;
 
     test)
-        volumes src test phpunit coverage dependencies
+        volumes src test phpunit coverage vendor
         shift
-        podman run -it --rm "${VOLUMES[@]}" "$ID:dev" \
-            php /app/vendor/bin/phpunit --coverage-html /app/docs/coverage /app/tests $*
+        "$CONMAN" run -it --rm "${VOLUMES[@]}" "$IMAGE" \
+            php /opt/$VENDOR/$PROJECT/vendor/bin/phpunit --coverage-html "/opt/$VENDOR/$PROJECT/docs/coverage" /opt/$VENDOR/$PROJECT/tests $*
         ;;
 
     check)
         volumes src test
-        podman run -it --rm "${VOLUMES[@]}" "$ID:dev" \
+        "$CONMAN" run -it --rm "${VOLUMES[@]}" "$IMAGE" \
             find src tests -name "*.php" -type f -exec php -l "{}" \;
         ;;
 
     bash)
         volumes src test
-        podman run -it --rm "${VOLUMES[@]}" "$ID:${2:-dev}" bash
+        "$CONMAN" run -it --rm "${VOLUMES[@]}" "$IMAGE" bash
         ;;
 
-    run)
-        echo "This is a library and can't be run."
+    php)
+        volumes src test
+        shift
+        echo "$CONMAN" run -it --rm "${VOLUMES[@]}" "$IMAGE" -u 1000:1000 php "$@"
         ;;
 
-    status | add | commit | pull | push | stash | diff)
-        git $*
+    coverage)
+        volumes src test coverage
+        "$CONMAN" run --name "${VENDOR}_${PROJECT}" -d --rm "${VOLUMES[@]}" -p 8080:8080 "$IMAGE" php -S 0.0.0.0:8080 coverage.php >/dev/null
+        echo "Goto http://$(ip addr show eth0 | sed -n 's/^ *inet \([^/]*\).*$/\1/p'):8080"
         ;;
 
-    "")
-        echo "Usage: $0 ( login | build | update | require | publish | test | run | check | bash | status | add | commit | pull | push | stash | diff)"
+    ""|help|--help|-h|-?)
+        echo "Usage: $0 ( login | build | update | require | test | check | bash | coverage)"
         ;;
 
     *)

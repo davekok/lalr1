@@ -4,111 +4,112 @@ declare(strict_types=1);
 
 namespace davekok\parser\tests;
 
-use davekok\parser\{Parser,Token};
 use Exception;
+use Generator;
 use Throwable;
 
-enum ExpressionState
+enum ExpressionParserLexarState
 {
     case YYSTART;
     case YYINT;
     case YYFLOAT;
 }
 
-class ExpressionReader
+/**
+ * Lexal analyzer for ExpressionParser
+ */
+trait ExpressionParserLexar
 {
-    private ExpressionState $state = ExpressionState::YYSTART;
-
-    public function __construct(
-        private readonly Parser $parser
-    ) {}
-
-    public function read(string $buffer): int|float
+    private function lex(iterable $input): Generator
     {
-        try {
+        $state = ExpressionParserLexarState::YYSTART;
+        $remaining = "";
+        foreach ($input as $buffer) {
+            $buffer = $remaining . $buffer;
             $mark   = 0;
             $offset = 0;
-            while ($offset < strlen($buffer)) {
-                switch ($this->state) {
-                    case ExpressionState::YYSTART:
+            $length = strlen($buffer);
+            while ($offset < $length) {
+                switch ($state) {
+                    case ExpressionParserLexarState::YYSTART:
                         switch (ord($buffer[$offset])) {
                             case 0x09:case 0x0A:case 0x0D:case 0x20:
                                 $mark = $offset++;
                                 continue 3;
                             case 0x28:
                                 $mark = $offset++;
-                                $this->parser->pushToken("(");
+                                yield new ExpressionParserToken(ExpressionParserType::leftgroup);
                                 continue 3;
                             case 0x29:
                                 $mark = $offset++;
-                                $this->parser->pushToken(")");
+                                yield new ExpressionParserToken(ExpressionParserType::rightgroup);
                                 continue 3;
                             case 0x2A:
                                 $mark = $offset++;
-                                $this->parser->pushToken("*");
+                                yield new ExpressionParserToken(ExpressionParserType::times);
                                 continue 3;
                             case 0x2B:
                                 $mark = $offset++;
-                                $this->parser->pushToken("+");
+                                yield new ExpressionParserToken(ExpressionParserType::plus);
                                 continue 3;
                             case 0x2D:
                                 $mark = $offset++;
-                                $this->parser->pushToken("-");
+                                yield new ExpressionParserToken(ExpressionParserType::minus);
                                 continue 3;
                             case 0x2F:
                                 $mark = $offset++;
-                                $this->parser->pushToken("/");
+                                yield new ExpressionParserToken(ExpressionParserType::division);
                                 continue 3;
                             case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
                                 $mark = $offset++;
-                                $this->state = ExpressionState::YYINT;
+                                $state = ExpressionParserLexarState::YYINT;
                                 continue 3;
                             case 0x5C:
                                 $mark = $offset++;
-                                $this->parser->pushToken("\\");
+                                yield new ExpressionParserToken(ExpressionParserType::modulo);
                                 continue 3;
                             default:
-                                throw new Exception("Scan error");
+                                throw new \Exception("Lex error");
                         }
-                    case ExpressionState::YYINT:
+                    case ExpressionParserLexarState::YYINT:
                         switch (ord($buffer[$offset])) {
                             case 0x2E:
                                 ++$offset;
-                                $this->state = ExpressionState::YYFLOAT;
+                                $state = ExpressionParserLexarState::YYFLOAT;
                                 continue 3;
                             case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
                                 ++$offset;
                                 continue 3;
                             default:
-                                $this->parser->pushToken("number", (int)substr($buffer, $mark, $offset));
-                                $this->state = ExpressionState::YYSTART;
+                                yield new ExpressionParserToken(ExpressionParserType::number, (int)substr($buffer, $mark, $offset));
+                                $state = ExpressionParserLexarState::YYSTART;
                                 continue 3;
                         }
-                    case ExpressionState::YYFLOAT:
+                    case ExpressionParserLexarState::YYFLOAT:
                         switch (ord($buffer[$offset])) {
                             case 0x30:case 0x31:case 0x32:case 0x33:case 0x34:case 0x35:case 0x36:case 0x37:case 0x38:case 0x39:
                                 ++$offset;
                                 continue 3;
                             default:
-                                $this->parser->pushToken("number", (float)substr($buffer, $mark, $offset));
-                                $this->state = ExpressionState::YYSTART;
+                                yield new ExpressionParserToken(ExpressionParserType::number, (float)substr($buffer, $mark, $offset));
+                                $state = ExpressionParserLexarState::YYSTART;
                                 continue 3;
                         }
                 }
             }
-            switch ($this->state) {
-                case ExpressionState::YYINT:
-                    $this->parser->pushToken("number", (int)substr($buffer, $mark, $offset));
-                    break;
-                case ExpressionState::YYFLOAT:
-                    $this->parser->pushToken("number", (float)substr($buffer, $mark, $offset));
-                    break;
-            }
-            return $this->parser->endOfTokens();
-        } catch (Throwable $e) {
-            $this->state = ExpressionState::YYSTART;
-            $this->parser->reset();
-            throw $e;
+            $remaining = substr($buffer, $mark);
         }
+        switch ($state) {
+            case ExpressionParserLexarState::YYINT:
+                yield new ExpressionParserToken(ExpressionParserType::number, (int)substr($buffer, $mark, $offset));
+                break;
+
+            case ExpressionParserLexarState::YYFLOAT:
+                yield new ExpressionParserToken(ExpressionParserType::number, (float)substr($buffer, $mark, $offset));
+                break;
+
+            default:
+        }
+        yield null;
     }
 }

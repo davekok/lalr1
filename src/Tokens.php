@@ -12,11 +12,6 @@ class Tokens
         private array $tokens = [],
     ) {}
 
-    public function reset(): void
-    {
-        $this->tokens = [];
-    }
-
     public function get(int $offset): Token
     {
         return $this->tokens[$offset];
@@ -50,10 +45,5 @@ class Tokens
     public function count()
     {
         return count($this->tokens);
-    }
-
-    public function __toString(): string
-    {
-        return json_encode(["count" => $this->count(), "tokens" => $this->tokens], JSON_THROW_ON_ERROR);
     }
 }

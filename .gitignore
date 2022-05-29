@@ -1,2 +1,9 @@
 vendor/
 docs/coverage/
+/.phpunit.cache/
+/.composer/
+/.idea/
+/tests/ExpressionParserRule.php
+/tests/ExpressionParserStitcher.php
+/tests/ExpressionParserToken.php
+/tests/ExpressionParserType.php

@@ -4,30 +4,37 @@ declare(strict_types=1);
 
 namespace davekok\parser\tests;
 
-use davekok\parser\{Parser,RulesBag,RulesBagFactory};
+use davekok\parser\{ParserGenerator,ParserReflection};
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use SplFileInfo;
 
-/**
- * @covers \davekok\parser\Parser::__construct
- * @covers \davekok\parser\Parser::createToken
- * @covers \davekok\parser\Parser::endOfTokens
- * @covers \davekok\parser\Parser::pushToken
- * @covers \davekok\parser\Parser::reduce
- * @covers \davekok\parser\Parser::reset
- * @uses \davekok\parser\attributes\Rule
- * @uses \davekok\parser\attributes\Symbol
- * @uses \davekok\parser\attributes\Symbols
- * @uses \davekok\parser\Key
- * @uses \davekok\parser\Rule
- * @uses \davekok\parser\RulesBag
- * @uses \davekok\parser\RulesBagFactory
- * @uses \davekok\parser\Symbol
- * @uses \davekok\parser\Token
- * @uses \davekok\parser\Tokens
- */
 class ExpressionTest extends TestCase
 {
+    /**
+     * @covers \davekok\parser\ParserGenerator::__construct
+     * @covers \davekok\parser\ParserGenerator::getIterator
+     * @covers \davekok\parser\ParserGenerator::indinc
+     * @covers \davekok\parser\ParserGenerator::inddec
+     * @covers \davekok\parser\ParserGenerator::indent
+     * @covers \davekok\parser\ParserGenerator::safestr
+     * @uses \davekok\parser\ParserReflection
+     * @uses \davekok\parser\Rule
+     * @uses \davekok\parser\Symbol
+     * @uses \davekok\parser\attributes\Rule
+     * @uses \davekok\parser\attributes\Symbol
+     * @uses \davekok\parser\attributes\Symbols
+     */
+    public function testGenerator(): void
+    {
+        foreach (new ParserGenerator(new ParserReflection(ExpressionParser::class)) as $phpFile) {
+            file_put_contents($phpFile->name, (string)$phpFile);
+        }
+
+        // $expected = str_replace('2022-05-26 14:35:39', date('Y-m-d H:i:s'), file_get_contents($file));
+        // self::assertSame($expected, $actual);
+    }
+
     public function simpleData(): array
     {
         return [
@@ -51,15 +58,15 @@ class ExpressionTest extends TestCase
 
     /**
      * @dataProvider simpleData
+     * @covers \davekok\parser\ParserTrait::parseTokens
+     * @covers \davekok\parser\ParserTrait::scanTokens
+     * @uses \davekok\parser\Tokens
      */
     public function testSimple(mixed $expected, string $expression): void
     {
-        $reader = new ExpressionReader(
-            new Parser(
-                rulesBag: (new RulesBagFactory)->createRulesBag(new ReflectionClass(ExpressionRules::class)),
-                rules:    new ExpressionRules,
-            )
-        );
-        self::assertSame($expected, $reader->read($expression));
+        $parser = new ExpressionParser();
+        foreach ($parser->parse($expression) as $value) {
+            self::assertSame($expected, $value);
+        }
     }
 }

@@ -11,24 +11,16 @@ use Attribute;
  *
  * Example:
  *
- *     use davekok\parser\attributes\{Rule,Solution,Symbol,Symbols};
- *     use davekok\parser\SymbolType;
+ *     use davekok\parser\attributes\{Rule,Input,Output};
  *
- *     #[Symbols(new Symbol(SymbolType::ROOT, "number"), new Symbol(SymbolType::LEAF, "+")]
- *     class MyRules
+ *     #[InputOutput("number", "n")]
+ *     #[Input("plus, text: "+")]
+ *     abstract class AbstractParser implements Parser
  *     {
- *         public function __construct(private Parser $parser) {}
- *
- *         #[Rule("number + number")]
- *         public function addRule(array $tokens): Token
+ *         #[Rule("n", "n + n")]
+ *         public function addRule(int $n1, int $n3): int
  *         {
- *             return $this->parser->createToken("number", $tokens[0]->value + $tokens[2]->value);
- *         }
- *
- *         #[Solution]
- *         public function printSolution(float $number): void
- *         {
- *             echo "Solution: $number\n";
+ *             return $n1 + $n3;
  *         }
  *     }
  */
@@ -36,6 +28,7 @@ use Attribute;
 class Rule
 {
     public function __construct(
+        public readonly string $type,
         public readonly string $text,
         public readonly int $precedence = 0,
     ) {}
