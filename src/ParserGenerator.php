@@ -64,46 +64,116 @@ class ParserGenerator implements IteratorAggregate
 
     public function getIterator(): Generator
     {
-        yield $this->type();
-        yield $this->rule();
+        yield $this->type($this->reflection->types);
+        foreach ($this->sortByContext($this->reflection->rules) as $context => $rules) {
+            yield $this->rule($context, $rules);
+        }
         yield $this->token();
         if ($this->reflection->lexar && !file_exists("$this->dirname/$this->lexarName.php")) {
             yield $this->lexar();
         }
         yield $this->stitcher();
-
-        if (isset($this->reflection->invalidate)) {
-            foreach ($this->reflection->invalidate as $invalidate) {
-                unlink($invalidate);
-                if (function_exists("opcache_invalidate")) {
-                    opcache_invalidate($invalidate, true);
-                }
-            }
-        }
     }
 
-    public function type(): PhpFile
+    private function type(array $types): PhpFile
     {
-        return (new PhpFile("$this->dirname/$this->typeName.php", $this->style))
-            ->namespace($this->namespace)
+        $file = new PhpFile("$this->dirname/$this->typeName.php", $this->style);
+        $enum = $file->namespace($this->namespace)
             ->enum($this->typeName)->stringBacked()
                 ->comment($this->comment)
-                ->cases($this->cases($this->reflection->types))
-                ->public()->method("id")->return("int")
-                    ->body("return match (\$this) {\n{$this->matches("types", "id")}\n};")
-                ->public()->method("name")->return("string")
-                    ->body("return match (\$this) {\n{$this->matches("types", "name")}\n};")
-                ->public()->method("key")->return("string")
+                ->cases($this->cases($types))
+                ->public()->method("id")->returns("int")
+                    ->body("return match (\$this) {\n{$this->matches($types, "id")}\n};")
+                ->public()->method("name")->returns("string")
+                    ->body("return match (\$this) {\n{$this->matches($types, "name")}\n};")
+                ->public()->method("key")->returns("string")
                     ->body("return \$this->value;")
-                ->public()->method("text")->return("string")
-                    ->body("return match (\$this) {\n{$this->matches("types", "text")}\n};")
-                ->public()->method("input")->return("bool")
-                    ->body("return match (\$this) {\n{$this->matches("types", "input")}\n};")
-                ->public()->method("output")->return("bool")
-                    ->body("return match (\$this) {\n{$this->matches("types", "output")}\n};")
-                ->public()->method("precedence")->return("int")
-                    ->body("return match (\$this) {\n{$this->matches("types", "precedence")}\n};")
+                ->public()->method("text")->returns("string")
+                    ->body("return match (\$this) {\n{$this->matches($types, "text")}\n};")
+                ->public()->method("input")->returns("bool")
+                    ->body("return match (\$this) {\n{$this->matches($types, "input")}\n};")
+                ->public()->method("output")->returns("bool")
+                    ->body("return match (\$this) {\n{$this->matches($types, "output")}\n};")
+                ->public()->method("precedence")->returns("int")
+                    ->body("return match (\$this) {\n{$this->matches($types, "precedence")}\n};");
+        return $file;
+    }
+
+    private function rule(string $postfix, array $rules): PhpFile
+    {
+        return (new PhpFile("$this->dirname/$this->ruleName$postfix.php", $this->style))
+            ->namespace($this->namespace)
+            ->enum($this->ruleName . $postfix)->stringBacked()
+                ->comment($this->comment)
+                ->cases($this->cases($rules))
+                ->public()->method("name")->returns("string")
+                    ->body("return match (\$this) {\n{$this->matches($rules, "name")}\n};")
+                ->public()->method("key")->returns("string")
+                    ->body("return \$this->value;")
+                ->public()->method("rule")->returns("string")
+                    ->body("return match (\$this) {\n{$this->matches($rules, "rule")}\n};")
+                ->public()->method("precedence")->returns("int")
+                    ->body("return match (\$this) {\n{$this->matches($rules, "precedence")}\n};")
                 ->end();
+    }
+
+    private function token(): PhpFile
+    {
+        return (new PhpFile("$this->dirname/$this->tokenName.php", $this->style))
+            ->namespace($this->namespace)
+            ->class($this->tokenName)->implements(Token::class)
+                ->comment($this->comment)
+                ->public()->constructor()
+                    ->public()->readonly()->param("type")->type($this->namespace."\\".$this->typeName)
+                    ->public()->readonly()->param("value")->type($this->reflection->valueType)->default(null)
+                    ->body()
+                ->end();
+    }
+
+    private function lexar(): PhpFile
+    {
+        return (new PhpFile("$this->dirname/$this->lexarName.php"))
+            ->namespace($this->namespace)
+            ->trait($this->lexarName)
+                ->comment("Lexical analyzer\n\n".$this->comment)
+                ->private()->method("lex")->returns(Generator::class)
+                    ->param("input")->type("iterable")
+                    ->body("// TODO: implement lexar")
+                ->end();
+    }
+
+    private function stitcher(): PhpFile
+    {
+        $file = new PhpFile("$this->dirname/$this->stitcherName.php", $this->style);
+        $file->namespace($this->namespace);
+
+        $trait = $file->trait($this->stitcherName)
+            ->comment($this->comment)
+            ->private()->property("parserContext")->type("string|null")->default($this->reflection->defaultContext)
+            ->private()->method("setParserContext")->returns("void")
+                ->param("content")->type("string|null")
+                ->body("\$this->parserContext = \$context;")
+            ->private()->method("getParserContext")->returns("string|null")
+                ->body("return \$this->parserContext;");
+
+        if ($this->reflection->lexar) {
+            $trait->public()->method("parse")->returns(Generator::class)
+                ->param("input")->type("string|iterable")
+                ->body("foreach (\$this->parseTokens(\$this->lex(is_string(\$input) ? [\$input] : \$input)) as \$token) {\n"
+                    . "yield \$token->value;\n"
+                . "};");
+        }
+
+        $trait->private()->method("findRule")->returns("$this->namespace\\$this->ruleName|null")
+            ->param("key")->type("string")
+            ->body($this->findRuleBody($this->reflection->rules));
+
+        $trait->private()->method("reduce")->returns(Token::class)
+            ->param("key")->type("$this->namespace\\$this->ruleName")
+            ->param("tokens")->type("array")
+            ->body("return match (\$key) {\n{$this->reducers()}\n};");
+
+        return $file;
     }
 
     private function cases(iterable $cases): Generator
@@ -122,28 +192,10 @@ class ParserGenerator implements IteratorAggregate
         }
     }
 
-    public function rule(): PhpFile
-    {
-        return (new PhpFile("$this->dirname/$this->ruleName.php", $this->style))
-            ->namespace($this->namespace)
-            ->enum($this->ruleName)->stringBacked()
-                ->comment($this->comment)
-                ->cases($this->cases($this->reflection->rules))
-                ->public()->method("name")->return("string")
-                    ->body("return match (\$this) {\n{$this->matches("rules", "name")}\n};")
-                ->public()->method("key")->return("string")
-                    ->body("return \$this->value;")
-                ->public()->method("text")->return("string")
-                    ->body("return match (\$this) {\n{$this->matches("rules", "text")}\n};")
-                ->public()->method("precedence")->return("int")
-                    ->body("return match (\$this) {\n{$this->matches("rules", "precedence")}\n};")
-                ->end();
-    }
-
-    private function matches(string $collection, string $property): string
+    private function matches(array $entries, string $property): string
     {
         $lines = "";
-        foreach ($this->reflection->$collection as $entry) {
+        foreach ($entries as $entry) {
             $value = $entry->$property;
             $lines .= "self::$entry->name => " . match (true) {
                 is_string($value) => "\"" . addslashes($value) . "\"",
@@ -155,72 +207,52 @@ class ParserGenerator implements IteratorAggregate
         return rtrim($lines);
     }
 
-    public function token(): PhpFile
+    private function findRuleBody(array $rules): string
     {
-        return (new PhpFile("$this->dirname/$this->tokenName.php", $this->style))
-            ->namespace($this->namespace)
-            ->class($this->tokenName)->implements(Token::class)
-                ->comment($this->comment)
-                ->public()->constructor()
-                    ->public()->readonly()->arg("type")->type($this->namespace."\\".$this->typeName)
-                    ->public()->arg("value")->type($this->reflection->valueType)->default(null)
-                    ->body()
-                ->end();
-    }
-
-    public function lexar(): PhpFile
-    {
-        return (new PhpFile("$this->dirname/$this->lexarName.php"))
-            ->namespace($this->namespace)
-            ->trait($this->lexarName)
-                ->comment("Lexical analyzer\n\n".$this->comment)
-                ->private()->method("lex")->return(Generator::class)
-                    ->arg("input")->type("iterable")
-                    ->body("// TODO: implement lexar")
-                ->end();
-    }
-
-    public function stitcher(): PhpFile
-    {
-        $file = new PhpFile("$this->dirname/$this->stitcherName.php", $this->style);
-        $file->namespace($this->namespace);
-
-        $trait = $file->trait($this->stitcherName);
-        $trait->comment($this->comment);
-
-        if ($this->reflection->lexar) {
-            $trait->public()->method("parse")->return(Generator::class)
-                ->arg("input")->type("string|iterable")
-                ->body("yield from \$this->parseTokens(\$this->lex(is_string(\$input) ? [\$input] : \$input));");
+        $body = "return match (\$this->parserContext) {\n";
+        foreach ($this->getContexts($rules) as $context) {
+            $body .= "\"$context\" => $this->ruleName$context::tryFrom(\$key),\n";
         }
-
-        $trait->private()->method("findRule")->return("$this->namespace\\$this->ruleName|null")
-            ->arg("key")->type("string")
-            ->body("return $this->ruleName::tryFrom(\$key);");
-
-        $trait->private()->method("reduce")->return(Token::class)
-            ->arg("key")->type("$this->namespace\\$this->ruleName")
-            ->arg("tokens")->type("array")
-            ->body("return match (\$key) {\n{$this->reducers()}\n};");
-
-        return $file;
+        $body .= "}\n";
+        return $body;
     }
 
     private function reducers(): string
     {
         $lines = "";
         foreach ($this->reflection->rules as $rule) {
+            $parts = explode(" ", $rule->rule);
             $lines .= "$this->ruleName::$rule->name => new {$this->tokenName}({$this->typeName}::{$rule->type}, \$this->{$rule->reducer->name}(";
-            $i = 0;
+            $comma = 0;
             foreach ($rule->reducer->getParameters() as $parameter) {
-                if ($i++) $lines .= ", ";
-                if (preg_match("/([1-9][0-9]*)?$/", $parameter->name, $matches) === 1) {
-                    $tokenIndex = ((int)$matches[1]) - 1;
-                    $lines .= "\$tokens[$tokenIndex]->value";
-                }
+                if ($comma++) $lines .= ", ";
+                $lines .= "\$tokens[{$rule->binding[$parameter->name]}]->value";
             }
             $lines .= ")),\n";
         }
         return rtrim($lines);
+    }
+
+    private function getContexts(array $items): array
+    {
+        $contexts = [];
+        foreach ($items as $item) {
+            foreach ($item->context as $context) {
+                $contexts[] = $context;
+            }
+        }
+        sort($contexts);
+        return $contexts;
+    }
+
+    private function sortByContext(array $items): array
+    {
+        $contexts = [];
+        foreach ($items as $item) {
+            foreach ($item->context as $context) {
+                $contexts[$context][] = $item;
+            }
+        }
+        return $contexts;
     }
 }

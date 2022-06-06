@@ -16,8 +16,8 @@ class PhpConstructorVisibility
         return $this->target->readonly($this->visibility);
     }
 
-    public function arg(string $name): PhpConstructorArgument
+    public function param(string $name): PhpConstructorArgument
     {
-        return $this->target->arg($name, $this->visibility);
+        return $this->target->param($name, $this->visibility);
     }
 }

@@ -12,8 +12,8 @@ class PhpMethod
     private bool $final = false;
     private bool $abstract = false;
     private string|false $comment = false;
-    private string|false $return = false;
-    protected array $args = [];
+    private string|false $returns = false;
+    protected array $params = [];
     private array $lines = [];
 
     public function __construct(
@@ -48,14 +48,14 @@ class PhpMethod
         return $this;
     }
 
-    public function arg(string $name): PhpArgument
+    public function param(string $name): PhpParameter
     {
-        return $this->args[] = new PhpArgument($this->text, $this->file, $this, $name);
+        return $this->params[] = new PhpParameter($this->text, $this->file, $this, $name);
     }
 
-    public function return(string|ReflectionClass $type): self
+    public function returns(string|ReflectionClass $type): self
     {
-        $this->return = $this->file->reference($type);
+        $this->returns = $this->file->reference($type);
         return $this;
     }
 
@@ -74,7 +74,6 @@ class PhpMethod
         return $this->file;
     }
 
-
     public function __toString()
     {
         $php = "";
@@ -92,13 +91,13 @@ class PhpMethod
         }
         $php .= "function $this->name(";
         $i = 0;
-        foreach ($this->args as $arg) {
+        foreach ($this->params as $param) {
             if ($i++) $php .= ", ";
-            $php .= (string)$arg;
+            $php .= (string)$param;
         }
         $php .= ")";
-        if ($this->return) {
-            $php .= ": $this->return";
+        if ($this->returns) {
+            $php .= ": $this->returns";
         }
         if (count($this->lines) > 0) {
             $php .= $this->text->bodyOpen();

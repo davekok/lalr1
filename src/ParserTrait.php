@@ -14,64 +14,84 @@ use Generator;
  * is matched, the rule's reduce method is called and the matched tokens are replaced with the
  * token returned by the reduce method.
  *
- * When there are no more tokens push, endOfTokens is called.
+ * When there are no more tokens push, push null to get a solution.
  *
- * A solution is found when at the end of tokens, through reducing, only one token remains having
- * the root symbol and thus being a root token.
+ * A solution is found when at the end of tokens, through reducing, only one token remains and
+ * it is an output token.
+ *
+ * Please note that you can only push input tokens.
  */
-trait ParserTrait/*<EnumType>*/
+trait ParserTrait
 {
-    /*
-    abstract private function lex(iterable $input): EnumType;
-    abstract private function findRule(string $key): EnumType;
-    abstract private function reduce(EnumType $rule, array $tokens): Token;
-    */
+    private Tokens $tokens;
 
-    public function parseTokens(iterable $inputTokens): Generator
+    abstract private function findRule(string $key): RuleEnum|null;
+    abstract private function reduce(RuleEnum $rule, array $tokens): Token;
+
+    /**
+     * Simple wrapper function around pushToken.
+     */
+    private function parseTokens(iterable $inputTokens): Generator
     {
-        $tokens = new Tokens;
-        foreach ($inputTokens as $token) {
-            if ($token !== null) {
-                if ($token->type->input() === false) {
-                    throw new ParserException("Not a input type.");
-                }
-                $tokens->push($token);
-                $this->scanTokens($tokens, endOfTokens: false);
+        foreach ($inputTokens as $inputToken) {
+            $outputToken = $this->pushToken($inputToken);
+
+            if ($outputToken === false) {
                 continue;
             }
 
-            if ($tokens->count() === 0) {
+            if ($outputToken === null) {
                 yield null;
                 continue;
             }
 
-            $this->scanTokens($tokens, endOfTokens: true);
-
-            if ($tokens->count() != 1) {
-                throw new NoSolutionParserException("Token count is not 1 but {$tokens->count()}");
-            }
-
-            $token = $tokens->pop();
-
-            // If token has the root symbol, we have a solution.
-            if ($token->type->output() === false) {
-                throw new NoSolutionParserException("Token is not root.");
-            }
-
-            yield $token->value;
+            yield $outputToken;
         }
     }
 
-    private function scanTokens(Tokens $tokens, bool $endOfTokens): void
+    private function pushToken(Token|null $inputToken): Token|false|null
+    {
+        $this->tokens ??= new Tokens;
+
+        if ($inputToken !== null) {
+            if ($inputToken->type->input() === false) {
+                throw new ParserException("Not a input token.");
+            }
+            $this->tokens->push($inputToken);
+            $this->scanTokens(endOfTokens: false);
+            return false;
+        }
+
+        if ($this->tokens->count() === 0) {
+            return null;
+        }
+
+        $this->scanTokens(endOfTokens: true);
+
+        if ($this->tokens->count() != 1) {
+            throw new NoSolutionParserException("Token count is not one but {$this->tokens->count()}");
+        }
+
+        $outputToken = $this->tokens->pop();
+
+        // If token is an output token, we have a solution.
+        if ($outputToken->type->output() === false) {
+            throw new NoSolutionParserException("Remaining token is not an output token.");
+        }
+
+        return $outputToken;
+    }
+
+    private function scanTokens(bool $endOfTokens): void
     {
         for (;;) {
-            $count = $tokens->count();
+            $count = $this->tokens->count();
 
             // Skip the lookahead token until the end has been reached.
             $lookAheadToken = null;
             if ($endOfTokens === false) {
                 --$count;
-                $lookAheadToken = $tokens->last();
+                $lookAheadToken = $this->tokens->last();
             }
 
             // Check if a rule matches and reduce.
@@ -79,7 +99,7 @@ trait ParserTrait/*<EnumType>*/
                 // Construct the key.
                 $key = "";
                 for ($o = $offset; $o < $count; ++$o) {
-                    $key .= $tokens->get($o)->type->key();
+                    $key .= $this->tokens->get($o)->type->key();
                 }
 
                 $rule = $this->findRule($key);
@@ -95,10 +115,10 @@ trait ParserTrait/*<EnumType>*/
                 }
 
                 // Reduce tokens.
-                $newToken = $this->reduce($rule, $tokens->rangeFrom($offset));
+                $newToken = $this->reduce($rule, $this->tokens->rangeFrom($offset));
 
                 // Replace matched tokens with new token
-                $tokens->replace($offset, $count - $offset, $newToken);
+                $this->tokens->replace($offset, $count - $offset, $newToken);
 
                 // Check for more rules with new state.
                 continue 2;

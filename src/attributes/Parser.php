@@ -92,5 +92,19 @@ class Parser
          * Whether to generator a lexar.
          */
         public readonly bool $lexar = false,
+
+        /**
+         * The default context, if any.
+         *
+         * Contexts can be used to group rules together. Setting a context activates that
+         * rule group. Rules can belong to multiple contexts.
+         *
+         * Contexts are only used if there is more then one. Setting the current context
+         * can be done with setParserContext and getParserContext to get the current context.
+         *
+         * If contexts are used a rule should either have a context or the default context
+         * should be set.
+         */
+        public readonly string|null $defaultContext = null,
     ) {}
 }

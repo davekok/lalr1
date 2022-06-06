@@ -47,15 +47,17 @@ class PhpClass
         return $this;
     }
 
-    public function extends(string|ReflectionClass $reference): self
+    public function extends(string $reference): self
     {
         $this->extends = $this->file->reference($reference);
         return $this;
     }
 
-    public function implements(string|ReflectionClass $reference): self
+    public function implements(string ...$references): self
     {
-        $this->implements[] = $this->file->reference($reference);
+        foreach ($references as $reference) {
+            $this->implements[] = $this->file->reference($reference);
+        }
         return $this;
     }
 
@@ -106,12 +108,7 @@ class PhpClass
             $php .= " extends $this->extends";
         }
         if ($this->implements) {
-            $php .= " implements ";
-            $i = 0;
-            foreach ($this->implements as $reference) {
-                if ($i++) $php .= ", ";
-                $php .= $reference;
-            }
+            $php .= " implements " . implode(", ", $this->implements);
         }
         $php .= $this->text->bodyOpen();
         $php .= $this->text->parts($this->parts);

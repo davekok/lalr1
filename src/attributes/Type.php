@@ -14,30 +14,31 @@ use Attribute;
  *
  *     use davekok\parser\attributes\{Input,Rule,Value};
  *
- *     #[Type("person", "p")]
- *     #[Input("braceOpen", "{")]
- *     #[Input("braceClose", "}")]
- *     #[Input("colon", ":")]
- *     #[Input("comma", ",")]
- *     #[Input("nameProperty", "name")]
- *     #[Input("nameValue", "$name")]
- *     #[Input("ageProperty", "age")]
- *     #[Input("ageValue", "$age")]
+ *     #[Type("person")]
+ *     #[Input("braceOpen", "'{'")]
+ *     #[Input("braceClose", "'}'")]
+ *     #[Input("colon", "':'")]
+ *     #[Input("comma", "','")]
+ *     #[Input("nameProperty", "'name'")]
+ *     #[Input("nameValue", "/\"[^\"]*\"/")]
+ *     #[Input("ageProperty", "'age'")]
+ *     #[Input("ageValue", "/[0-9]+/")]
  *     class AbstractParser implements Parser
  *     {
- *         #[Rule("p", "{ name : $name , age : $age }")]
- *         public function rule(string $name1, int $age8): Person
+ *         #[Rule("person", "braceOpen nameProperty colon nameValue comma ageProperty colon ageValue braceClose")]
+ *         public function rule(string $name, int $age): Person
  *         {
- *             return new Person(name: $name1, age: $age8);
+ *             return new Person(name: $name, age: $age);
  *         }
  *     }
  */
-#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class Type
 {
     public function __construct(
         public readonly string $name,
-        public readonly string $text,
+        public readonly string|null $pattern = null,
         public readonly int $precedence = 0,
+        public readonly array|string|null $context = null,
     ) {}
 }

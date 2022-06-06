@@ -9,6 +9,7 @@ use Exception;
 class PhpEnum
 {
     private string|false $comment = false;
+    private array|false $implements = false;
     private string|false $backed = false;
     private array $cases = [];
     private array $parts = [];
@@ -22,6 +23,15 @@ class PhpEnum
     public function comment(string $comment): self
     {
         $this->comment = $comment;
+        return $this;
+    }
+
+    public function implements(string ...$implements): self
+    {
+        $this->implements = [];
+        foreach ($implements as $reference) {
+            $this->implements[] = $this->file->reference($reference);
+        }
         return $this;
     }
 
@@ -103,6 +113,9 @@ class PhpEnum
         $php .= "enum $this->name";
         if ($this->backed) {
             $php .= ": $this->backed";
+        }
+        if ($this->implements) {
+            $php .= " implements " . implode(", ", $this->implements);
         }
         $php .= $this->text->bodyOpen();
         foreach ($this->cases as $name => $value) {

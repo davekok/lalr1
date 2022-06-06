@@ -7,12 +7,13 @@ namespace davekok\parser;
 class ParserReflectionType
 {
     public function __construct(
-        public readonly int $id,
-        public readonly string $key,
-        public readonly string $name,
-        public readonly string $text,
-        public readonly bool $input,
-        public readonly bool $output,
-        public readonly int $precedence,
+        public readonly int         $id,
+        public readonly string      $key,
+        public readonly string      $name,
+        public readonly string|null $pattern,
+        public readonly bool        $input,
+        public readonly bool        $output,
+        public readonly int         $precedence,
+        public readonly array       $context,
     ) {}
 }

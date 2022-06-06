@@ -13,12 +13,12 @@ use Attribute;
  *
  * Example:
  *
- *     use davekok\parser\attributes\{Output};
+ *     use davekok\parser\attributes\Output;
  *
- *     #[Output("file", "f")]
+ *     #[Output("number")]
  *     class AbstractParser implements Parser
  *     {
  *     }
  */
- #[Attribute(Attribute::TARGET_CLASS)]
+ #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class Output extends Type {}

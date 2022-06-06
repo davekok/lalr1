@@ -15,10 +15,10 @@ use Attribute;
  *
  *     use davekok\parser\attributes\Input;
  *
- *     #[Input("plus", "+", 0)]
+ *     #[Input("number")]
  *     class AbstractParser implements Parser
  *     {
  *     }
  */
-#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 class Input extends Type {}

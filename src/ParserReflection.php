@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace davekok\parser;
 
-use Generator;
 use ReflectionClass;
 use ReflectionMethod;
 use davekok\parser\attributes\Input;
 use davekok\parser\attributes\InputOutput;
 use davekok\parser\attributes\Output;
-use davekok\parser\attributes\Parser as ParserAttribute;
-use davekok\parser\attributes\Rule as RuleAttribute;
-use davekok\parser\attributes\Type as TypeAttribute;
+use davekok\parser\attributes\Parser;
+use davekok\parser\attributes\Rule;
+use davekok\parser\attributes\Type;
 
-class ParserReflection
+final class ParserReflection
 {
     public readonly ReflectionClass $class;
-    public readonly string|null $name;
-    public readonly string $valueType;
-    public readonly bool $lexar;
+    public readonly string|null     $name;
+    public readonly string          $valueType;
+    public readonly bool            $lexar;
+    public readonly string|null     $defaultContext;
 
     /** @var ParserReflectionType[] */
     public readonly array $types;
@@ -27,126 +27,227 @@ class ParserReflection
     /** @var ParserReflectionRule[] */
     public readonly array $rules;
 
-    public readonly array $invalidate;
-
     public function __construct(string $parser)
     {
-        spl_autoload_register($this->autoload(...));
-        $this->class = new ReflectionClass($parser);
-        spl_autoload_unregister($this->autoload(...));
-        $parser = $this->parser();
-        $this->name = $parser->name;
-        $this->valueType = $parser->valueType;
-        $this->lexar = $parser->lexar;
-        $this->types = iterator_to_array($this->types());
-        $this->rules = iterator_to_array($this->rules());
-    }
-
-    public function autoload(string $className): void
-    {
-        // Stitcher should be used in parser. However, it may not exist. Create temporary placeholder just in case.
-        if (str_ends_with($className, "Stitcher")) {
-            $path = strtr($className, "\\", "/");
-            $namespace = strtr(dirname($path), "/", "\\");
-            $shortName = basename($path);
-            $filename = sys_get_temp_dir() . "/$shortName.php";
-            $this->invalidate[] = $filename;
-            file_put_contents($filename, "<?php namespace $namespace; trait $shortName {}");
-            include($filename);
-        }
-    }
-
-    private function parser(): ParserAttribute
-    {
-        foreach ($this->class->getAttributes(ParserAttribute::class) as $attribute) {
-            return $attribute->newInstance();
-        }
-        throw new ParserReflectionException("Parser attribute is missing");
-    }
-
-    private function types(): Generator
-    {
-        $id = 0;
-        $haveInput = false;
+        spl_autoload_register(self::autoload(...));
+        $class      = new ReflectionClass($parser);
+        spl_autoload_unregister(self::autoload(...));
+        $parser     = null;
+        $haveInput  = false;
         $haveOutput = false;
-        foreach ($this->class->getAttributes() as $attribute) {
-            switch ($attribute->getName()) {
-                case Input::class:
-                    $input = true;
-                    $output = false;
-                    $haveInput = true;
-                    break;
+        $typeId     = 0;
+        $types      = [];
+        $rules      = [];
 
-                case Output::class:
-                    if ($haveOutput) {
-                        throw new ParserReflectionException("Output type already declared.");
-                    }
-                    $input = false;
-                    $output = true;
-                    $haveOutput = true;
-                    break;
+        // scan attributes
+        foreach (self::attributes($class) as [$method, $attribute]) {
+            switch ($attribute->getName()) {
+                case Parser::class:
+                    $parser = $attribute->newInstance();
+                    continue 2;
+
+                case Input::class:
+                    $haveInput = true;
+                    goto caseType;
 
                 case InputOutput::class:
-                    if ($haveOutput) {
-                        throw new ParserReflectionException("Output type already declared.");
-                    }
-                    $input = true;
-                    $output = true;
                     $haveInput = true;
+                case Output::class:
+                    if ($haveOutput === true) {
+                        throw new ParserReflectionException("Only one Output/InputOutput attribute allowed.");
+                    }
                     $haveOutput = true;
-                    break;
+                case Type::class:
+                caseType:
+                    if ($parser === null) {
+                        throw new ParserReflectionException("Parser attribute must be declared before types.");
+                    }
+                    $type = $this->type($attribute->newInstance(), $typeId++, $parser->defaultContext);
+                    if (isset($types[$type->name])) {
+                        throw new ParserReflectionException("Already have type with name $type->name.");
+                    }
+                    $types[$type->name] = $type;
+                    continue 2;
 
-                case TypeAttribute::class:
-                    $input = false;
-                    $output = false;
-                    break;
-
-                default:
+                case Rule::class:
+                    $rules[] = $this->rule($method, $attribute->newInstance(), $types, $parser?->defaultContext);
                     continue 2;
             }
-            $type = $attribute->newInstance();
-            yield $type->text => new ParserReflectionType(
-                id: $id,
-                key: Key::createKey($id),
-                name: $type->name,
-                text: $type->text,
-                input: $input,
-                output: $output,
-                precedence: $type->precedence,
-            );
-            ++$id;
         }
-        if (!$haveInput) {
-            throw new ParserReflectionException("Input type is missing, at least one expected.");
+
+        if ($parser === null) {
+            throw new ParserReflectionException("No Parser attribute, expected one.");
         }
-        if (!$haveOutput) {
-            throw new ParserReflectionException("Output type is missing, expected one.");
+        if ($haveOutput === false) {
+            throw new ParserReflectionException("No Output or InputOutput attribute, expected one.");
+        }
+        if ($haveInput === false) {
+            throw new ParserReflectionException("No Input or InputOutput attribute, expected at least one.");
+        }
+        if (count($rules) === 0) {
+            throw new ParserReflectionException("No Rule attributes, expected at least one.");
+        }
+
+        $this->class          = $class;
+        $this->name           = $parser->name;
+        $this->valueType      = $parser->valueType;
+        $this->lexar          = $parser->lexar;
+        $this->defaultContext = $parser->defaultContext;
+        $this->rules          = $rules;
+        $this->types          = array_values($types);
+    }
+
+    /**
+     * Creates temporary placeholders for generated traits. As the traits may not exist yet.
+     */
+    private static function autoload(string $className): void
+    {
+        if (str_ends_with($className, "Stitcher")) {
+            [$namespace, $trait] = self::traitName($className);
+            eval(<<<PHP
+                $namespace
+
+                use davekok\parser\RuleEnum;
+                use davekok\parser\Token;
+
+                trait $trait
+                {
+                    private function findRule(string \$key): RuleEnum|null
+                    {
+                        throw new \Exception("not implemented");
+                    }
+
+                    private function reduce(RuleEnum \$rule, array \$tokens): Token
+                    {
+                        throw new \Exception("not implemented");
+                    }
+                }
+                PHP);
+            return;
+        }
+
+        if (str_ends_with($className, "Lexar")) {
+            [$namespace, $trait] = self::traitName($className);
+            eval("$namespace trait $trait {}");
         }
     }
 
-    private function rules(): Generator
+    private static function traitName(string $className): array
     {
-        foreach ($this->class->getMethods() as $method) {
-            foreach ($method->getAttributes(RuleAttribute::class) as $attr) {
-                $ruleAttr = $attr->newInstance();
-                $key = "";
-                $precedence = $ruleAttr->precedence;
-                foreach (explode(" ", $ruleAttr->text) as $typeText) {
-                    $type = $this->types[$typeText] ?? throw new ParserReflectionException("No such type '$typeText'");
-                    $key .= $type->key;
-                    if ($precedence === 0 && $type->input && $type->precedence != 0) {
-                        $precedence = $type->precedence;
-                    }
-                }
-                yield new ParserReflectionRule(
-                    name: $method->name,
-                    key: $key,
-                    type: $this->types[$ruleAttr->type]->name,
-                    text: $ruleAttr->text,
-                    precedence: $precedence,
-                    reducer: $method,
-                );
+        $offset = strrpos($className, "\\");
+        if ($offset === false) {
+            return ["", "$className"];
+        }
+        $namespace = substr($className, 0, $offset);
+        $shortName = substr($className, $offset + 1);
+        return ["namespace $namespace;", "$shortName"];
+    }
+
+    /**
+     * Return all the attributes of the class and its methods.
+     */
+    private static function attributes(ReflectionClass $class): iterable
+    {
+        foreach ($class->getAttributes() as $attribute) {
+            yield [null, $attribute];
+        }
+        foreach ($class->getMethods() as $method) {
+            foreach ($method->getAttributes() as $attribute) {
+                yield [$method, $attribute];
             }
         }
+    }
+
+    /**
+     * Reflect type
+     */
+    private static function type(Type $type, int $id, string|null $defaultContext): ParserReflectionType
+    {
+        return new ParserReflectionType(
+            id:         $id,
+            key:        Key::createKey($id),
+            name:       $type->name,
+            pattern:    $type->pattern,
+            input:      $type instanceof Input  || $type instanceof InputOutput,
+            output:     $type instanceof Output || $type instanceof InputOutput,
+            precedence: $type->precedence,
+            context:    match (true) {
+                is_array($type->context)  => $type->context,
+                is_string($type->context) => [$type->context],
+                $defaultContext !== null  => [$defaultContext],
+                default                   => [""],
+            }
+        );
+    }
+
+    /**
+     * Reflect rule
+     */
+    private static function rule(
+        ReflectionMethod $method,
+        Rule $ruleAttr,
+        array $types,
+        string|null $defaultContext
+    ): ParserReflectionRule
+    {
+        // parse rule
+        $parsedRule = explode(" ", $ruleAttr->rule);
+
+        // build key and default precedence
+        $key         = "";
+        $precedence  = $ruleAttr->precedence;
+        foreach ($parsedRule as $typeName) {
+            $type = $types[$typeName] ?? throw new ParserReflectionException("No such type '$typeName'.");
+            $key .= $type->key;
+            if ($precedence === 0 && $type->input && $type->precedence != 0) {
+                $precedence = $type->precedence;
+            }
+        }
+
+        return new ParserReflectionRule(
+            name:       $method->name,
+            key:        $key,
+            type:       $types[$ruleAttr->type]->name,
+            rule:       $ruleAttr->rule,
+            precedence: $precedence,
+            reducer:    $method,
+            binding:    self::binding($method->getParameters(), $parsedRule),
+            context:    match (true) {
+                is_array($ruleAttr->context)  => $ruleAttr->context,
+                is_string($ruleAttr->context) => [$ruleAttr->context],
+                $defaultContext !== null      => [$defaultContext],
+                default                       => [""],
+            },
+        );
+    }
+
+    /**
+     * Bind type names to method parameters.
+     */
+    private static function binding(array $parameters, array $parsedRule): array
+    {
+        $binding = [];
+        foreach ($parameters as $parameter) {
+            $typeIndex = 1;
+            foreach ($parsedRule as $index => $typeName) {
+                if ($typeName === $parameter->name) {
+                    $binding[$parameter->name] = $index;
+                    continue 2;
+                }
+
+                $name = preg_quote($typeName);
+                if (preg_match("/^{$name}_?([1-9][0-9]*)$/", $parameter->name, $matches) === 1) {
+                    $requestedTypeIndex = (int)$matches[1];
+                    if ($typeIndex === $requestedTypeIndex) {
+                        $binding[$parameter->name] = $index;
+                        continue 2;
+                    }
+                    ++$typeIndex;
+                    continue;
+                }
+            }
+            throw new ParserReflectionException("Unable to detect binding for parameter $parameter->name.");
+        }
+        return $binding;
     }
 }

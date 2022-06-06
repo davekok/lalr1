@@ -12,8 +12,10 @@ class ParserReflectionRule
         public readonly string $name,
         public readonly string $key,
         public readonly string $type,
-        public readonly string $text,
+        public readonly string $rule,
         public readonly int $precedence,
         public readonly ReflectionMethod $reducer,
+        public readonly array $binding,
+        public readonly array $context,
     ) {}
 }

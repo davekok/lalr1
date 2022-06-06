@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace davekok\parser;
 
-class PhpConstructorArgument extends PhpArgument
+class PhpConstructorParameter extends PhpParameter
 {
     private PhpVisibility|false $visibility;
     private bool $readonly;

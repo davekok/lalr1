@@ -13,14 +13,14 @@ use Attribute;
  *
  *     use davekok\parser\attributes\{Rule,Input,Output};
  *
- *     #[InputOutput("number", "n")]
- *     #[Input("plus, text: "+")]
- *     abstract class AbstractParser implements Parser
+ *     #[InputOutput("number")]
+ *     #[Input("plus)]
+ *     class MyParser
  *     {
- *         #[Rule("n", "n + n")]
- *         public function addRule(int $n1, int $n3): int
+ *         #[Rule("number", "number plus number")]
+ *         public function addRule(int $number1, int $number2): int
  *         {
- *             return $n1 + $n3;
+ *             return $number1 + $number2;
  *         }
  *     }
  */
@@ -29,7 +29,8 @@ class Rule
 {
     public function __construct(
         public readonly string $type,
-        public readonly string $text,
+        public readonly string $rule,
         public readonly int $precedence = 0,
+        public readonly array|string|null $context = null,
     ) {}
 }

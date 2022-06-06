@@ -6,7 +6,7 @@ namespace davekok\parser;
 
 use ReflectionClass;
 
-class PhpArgument
+class PhpParameter
 {
     private string|false $type = false;
     private bool $haveDefault = false;
@@ -17,9 +17,7 @@ class PhpArgument
         public readonly PhpFile   $file,
         public readonly PhpMethod $parent,
         public readonly string    $name,
-    )
-    {
-    }
+    ) {}
 
     public function type(string|ReflectionClass $type): static
     {
@@ -34,7 +32,7 @@ class PhpArgument
         return $this;
     }
 
-    public function arg(...$args): static
+    public function param(...$args): static
     {
         return $this->parent->arg(...$args);
     }

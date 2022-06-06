@@ -27,12 +27,19 @@ class ExpressionTest extends TestCase
      */
     public function testGenerator(): void
     {
+        unlink(__DIR__ . "/ExpressionParserRule.php");
+        unlink(__DIR__ . "/ExpressionParserStitcher.php");
+        unlink(__DIR__ . "/ExpressionParserToken.php");
+        unlink(__DIR__ . "/ExpressionParserType.php");
+
         foreach (new ParserGenerator(new ParserReflection(ExpressionParser::class)) as $phpFile) {
             file_put_contents($phpFile->name, (string)$phpFile);
         }
 
-        // $expected = str_replace('2022-05-26 14:35:39', date('Y-m-d H:i:s'), file_get_contents($file));
-        // self::assertSame($expected, $actual);
+        self::assertFileExists(__DIR__ . "/ExpressionParserRule.php");
+        self::assertFileExists(__DIR__ . "/ExpressionParserStitcher.php");
+        self::assertFileExists(__DIR__ . "/ExpressionParserToken.php");
+        self::assertFileExists(__DIR__ . "/ExpressionParserType.php");
     }
 
     public function simpleData(): array

@@ -17,10 +17,10 @@ use Attribute;
  *
  *     use davekok\parser\attributes\{InputOutput};
  *
- *     #[InputOutput("number", "n")]
+ *     #[InputOutput("number")]
  *     class AbstractParser implements Parser
  *     {
  *     }
  */
-#[Attribute(Attribute::TARGET_CLASS)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 class InputOutput extends Type {}

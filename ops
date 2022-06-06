@@ -83,7 +83,7 @@ case "${1:-}" in
     php)
         volumes src test
         shift
-        echo "$CONMAN" run -it --rm "${VOLUMES[@]}" "$IMAGE" -u 1000:1000 php "$@"
+        "$CONMAN" run -it --rm "${VOLUMES[@]}" -u 1000:1000 "$IMAGE" php "$@"
         ;;
 
     coverage)
