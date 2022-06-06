@@ -11,6 +11,11 @@ class PhpClassVisibility
         public readonly PhpVisibility     $visibility,
     ) {}
 
+    public function property(string $name): PhpProperty
+    {
+        return $this->target->property($name, $this->visibility);
+    }
+
     public function constructor(): PhpConstructor
     {
         return $this->target->constructor($this->visibility);

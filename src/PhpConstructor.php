@@ -31,8 +31,8 @@ class PhpConstructor extends PhpMethod
         return new PhpConstructorReadonly($this, $visibility);
     }
 
-    public function arg(string $name, PhpVisibility|false $visibility = false, bool $readonly = false): PhpConstructorArgument
+    public function param(string $name, PhpVisibility|false $visibility = false, bool $readonly = false): PhpConstructorParameter
     {
-        return $this->args[] = new PhpConstructorArgument($this->text, $this->file, $this, $name, $visibility, $readonly);
+        return $this->params[] = new PhpConstructorParameter($this->text, $this->file, $this, $name, $visibility, $readonly);
     }
 }

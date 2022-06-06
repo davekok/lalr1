@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace davekok\parser;
 
 use Exception;
-use PHPUnit\TextUI\XmlConfiguration\Php;
-use ReflectionClass;
 
 class PhpClass
 {
@@ -79,6 +77,11 @@ class PhpClass
     public function private(): PhpClassVisibility
     {
         return new PhpClassVisibility($this, PhpVisibility::private);
+    }
+
+    public function property(string $name, PhpVisibility|false $visibility = false): PhpProperty
+    {
+        return $this->parts[] = new PhpProperty($this->text, $this->file, $this, $name, $visibility);
     }
 
     public function method(string $name, PhpVisibility|false $visibility): PhpMethod

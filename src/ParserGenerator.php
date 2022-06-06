@@ -50,7 +50,7 @@ class ParserGenerator implements IteratorAggregate
     ) {
         $this->namespace = $namespace ?? ($this->reflection->class->inNamespace() ? $this->reflection->class->getNamespaceName() : false);
         $this->name = $name ?? $this->reflection->name ?? $this->reflection->class->getShortName();
-        $this->dirname = $dirname ?? dirname($this->reflection->class->getFileName() ?: throw new Exception("Parser has no filename."));
+        $this->dirname = $dirname ?? dirname($this->reflection->class->getFileName() ?: throw new ParserReflectionException("Parser has no filename."));
         $this->typeName = $typeName ?? ($this->name . "Type");
         $this->ruleName = $ruleName ?? ($this->name . "Rule");
         $this->tokenName = $tokenName ?? ($this->name . "Token");
@@ -79,7 +79,7 @@ class ParserGenerator implements IteratorAggregate
     {
         $file = new PhpFile("$this->dirname/$this->typeName.php", $this->style);
         $enum = $file->namespace($this->namespace)
-            ->enum($this->typeName)->stringBacked()
+            ->enum($this->typeName)->stringBacked()->implements(TypeEnum::class)
                 ->comment($this->comment)
                 ->cases($this->cases($types))
                 ->public()->method("id")->returns("int")
@@ -88,8 +88,8 @@ class ParserGenerator implements IteratorAggregate
                     ->body("return match (\$this) {\n{$this->matches($types, "name")}\n};")
                 ->public()->method("key")->returns("string")
                     ->body("return \$this->value;")
-                ->public()->method("text")->returns("string")
-                    ->body("return match (\$this) {\n{$this->matches($types, "text")}\n};")
+                ->public()->method("pattern")->returns("string")
+                    ->body("return match (\$this) {\n{$this->matches($types, "pattern")}\n};")
                 ->public()->method("input")->returns("bool")
                     ->body("return match (\$this) {\n{$this->matches($types, "input")}\n};")
                 ->public()->method("output")->returns("bool")
@@ -103,7 +103,7 @@ class ParserGenerator implements IteratorAggregate
     {
         return (new PhpFile("$this->dirname/$this->ruleName$postfix.php", $this->style))
             ->namespace($this->namespace)
-            ->enum($this->ruleName . $postfix)->stringBacked()
+            ->enum($this->ruleName . $postfix)->stringBacked()->implements(RuleEnum::class)
                 ->comment($this->comment)
                 ->cases($this->cases($rules))
                 ->public()->method("name")->returns("string")
@@ -149,9 +149,9 @@ class ParserGenerator implements IteratorAggregate
 
         $trait = $file->trait($this->stitcherName)
             ->comment($this->comment)
-            ->private()->property("parserContext")->type("string|null")->default($this->reflection->defaultContext)
+            ->private()->property("parserContext")->type("string")->default($this->reflection->defaultContext ?? "")
             ->private()->method("setParserContext")->returns("void")
-                ->param("content")->type("string|null")
+                ->param("context")->type("string|null")
                 ->body("\$this->parserContext = \$context;")
             ->private()->method("getParserContext")->returns("string|null")
                 ->body("return \$this->parserContext;");
@@ -169,7 +169,7 @@ class ParserGenerator implements IteratorAggregate
             ->body($this->findRuleBody($this->reflection->rules));
 
         $trait->private()->method("reduce")->returns(Token::class)
-            ->param("key")->type("$this->namespace\\$this->ruleName")
+            ->param("key")->type(RuleEnum::class)
             ->param("tokens")->type("array")
             ->body("return match (\$key) {\n{$this->reducers()}\n};");
 
@@ -213,7 +213,8 @@ class ParserGenerator implements IteratorAggregate
         foreach ($this->getContexts($rules) as $context) {
             $body .= "\"$context\" => $this->ruleName$context::tryFrom(\$key),\n";
         }
-        $body .= "}\n";
+        $body .= "default => throw new \davekok\parser\ParserException(\"Invalid parser context \$this->parserContext.\"),\n";
+        $body .= "};\n";
         return $body;
     }
 
@@ -238,7 +239,9 @@ class ParserGenerator implements IteratorAggregate
         $contexts = [];
         foreach ($items as $item) {
             foreach ($item->context as $context) {
-                $contexts[] = $context;
+                if (!in_array($context, $contexts)) {
+                    $contexts[] = $context;
+                }
             }
         }
         sort($contexts);

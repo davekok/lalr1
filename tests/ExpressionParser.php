@@ -46,7 +46,7 @@ class ExpressionParser
         return $number1 * $number2;
     }
 
-    #[Rule("number", "number divide number")]
+    #[Rule("number", "number division number")]
     public function divide(int|float $number1, int|float $number2): int|float
     {
         return $number1 / $number2;

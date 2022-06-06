@@ -11,7 +11,7 @@ class PhpConstructorReadonly
         public readonly PhpVisibility|false $visibility = false,
     ) {}
 
-    public function param(string $name): PhpConstructorArgument
+    public function param(string $name): PhpConstructorParameter
     {
         return $this->target->param($name, $this->visibility, readonly: true);
     }

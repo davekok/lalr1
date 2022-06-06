@@ -36,6 +36,11 @@ class PhpTrait
         return new PhpClassVisibility($this, PhpVisibility::private);
     }
 
+    public function property(string $name, PhpVisibility|false $visibility = false): PhpProperty
+    {
+        return $this->parts[] = new PhpProperty($this->text, $this->file, $this, $name, $visibility);
+    }
+
     public function method(string $name, PhpVisibility|false $visibility = false): PhpMethod
     {
         return $this->parts[] = new PhpMethod($this->text, $this->file, $this, $name, $visibility);

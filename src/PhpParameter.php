@@ -34,7 +34,7 @@ class PhpParameter
 
     public function param(...$args): static
     {
-        return $this->parent->arg(...$args);
+        return $this->parent->param(...$args);
     }
 
     public function body(...$args): PhpClass|PhpEnum|PhpTrait
